@@ -1,4 +1,4 @@
 # mymodule.py
-class MyCallableClass:
+class AsgiApplication:
     def __call__(self, arg):
         print(f"Called with argument: {arg}")

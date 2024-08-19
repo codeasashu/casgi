@@ -5,6 +5,9 @@ int main(int argc, char *argv[]) {
     // Initialize the Python interpreter
     Py_Initialize();
 
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append(\"/home/ashutosh/code/personal/casgi\")");
+
     // Load the module object
     PyObject *pName = PyUnicode_DecodeFSDefault("mymodule");
     PyObject *pModule = PyImport_Import(pName);
@@ -12,7 +15,7 @@ int main(int argc, char *argv[]) {
 
     if (pModule != NULL) {
         // Get the class from the module
-        PyObject *pClass = PyObject_GetAttrString(pModule, "MyCallableClass");
+        PyObject *pClass = PyObject_GetAttrString(pModule, "AsgiApplication");
         
         if (pClass && PyCallable_Check(pClass)) {
             // Create an instance of the class
