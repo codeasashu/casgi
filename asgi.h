@@ -3,10 +3,16 @@
 
 #include <stdio.h>
 #define PY_SSIZE_T_CLEAN
+#include "cJSON.h"
 #include <Python.h>
 
-struct uwsgi_server {
+typedef struct asgi_config {
+  char app_path[256];
+} asgi_config;
+
+struct casgi_server {
   char *python_path[64];
   int python_path_cnt;
   int has_threads;
+  struct asgi_config *config;
 };
