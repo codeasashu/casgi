@@ -1,8 +1,8 @@
+#define PY_SSIZE_T_CLEAN
 
 #define CASGI_VERSION "0.0.1-dev"
 
 #include <stdio.h>
-#define PY_SSIZE_T_CLEAN
 #include "cJSON.h"
 #include <Python.h>
 

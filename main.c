@@ -1,5 +1,34 @@
 #include "asgi.h"
 
+// Change the below function to accept a string parameters
+void init_paths(const char *mypath) {
+
+  int i;
+  PyObject *pysys, *pysys_dict, *pypath;
+
+  /* add cwd to pythonpath */
+  pysys = PyImport_ImportModule("sys");
+  if (!pysys) {
+    PyErr_Print();
+    exit(1);
+  }
+  pysys_dict = PyModule_GetDict(pysys);
+  pypath = PyDict_GetItemString(pysys_dict, "path");
+  if (!pypath) {
+    PyErr_Print();
+    exit(1);
+  }
+  if (PyList_Insert(pypath, 0, PyUnicode_FromString(".")) != 0) {
+    PyErr_Print();
+  }
+
+  if (PyList_Insert(pypath, 0, PyUnicode_FromString(mypath)) != 0) {
+    PyErr_Print();
+  } else {
+    printf("[INFO] adding %s to pythonpath.\n", mypath);
+  }
+}
+
 asgi_config *read_config(const char *filename) {
   FILE *file = fopen(filename, "r");
   if (file == NULL) {
@@ -42,14 +71,14 @@ asgi_config *read_config(const char *filename) {
   }
 
   // Extract "mypath" from the JSON
-  cJSON *mypath_json = cJSON_GetObjectItem(json, "mypath");
-  if (cJSON_IsString(mypath_json) && (mypath_json->valuestring != NULL)) {
-    strncpy(config->app_path, mypath_json->valuestring,
+  cJSON *apppath_json = cJSON_GetObjectItem(json, "app_path");
+  if (cJSON_IsString(apppath_json) && (apppath_json->valuestring != NULL)) {
+    strncpy(config->app_path, apppath_json->valuestring,
             sizeof(config->app_path) - 1);
     config->app_path[sizeof(config->app_path) - 1] =
         '\0'; // Ensure null termination
   } else {
-    printf("Invalid or missing 'mypath' in the configuration file.\n");
+    printf("Invalid or missing 'apppath' in the configuration file.\n");
     free(config);
     config = NULL;
   }
@@ -59,35 +88,6 @@ asgi_config *read_config(const char *filename) {
   free(buffer);
 
   return config;
-}
-
-// Change the below function to accept a string parameters
-void init_paths(const char *mypath) {
-
-  int i;
-  PyObject *pysys, *pysys_dict, *pypath;
-
-  /* add cwd to pythonpath */
-  pysys = PyImport_ImportModule("sys");
-  if (!pysys) {
-    PyErr_Print();
-    exit(1);
-  }
-  pysys_dict = PyModule_GetDict(pysys);
-  pypath = PyDict_GetItemString(pysys_dict, "path");
-  if (!pypath) {
-    PyErr_Print();
-    exit(1);
-  }
-  if (PyList_Insert(pypath, 0, PyUnicode_FromString(".")) != 0) {
-    PyErr_Print();
-  }
-
-  if (PyList_Insert(pypath, 0, PyUnicode_FromString(mypath)) != 0) {
-    PyErr_Print();
-  } else {
-    printf("[INFO] adding %s to pythonpath.\n", mypath);
-  }
 }
 
 int main(int argc, char *argv[]) {
