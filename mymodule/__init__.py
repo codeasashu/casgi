@@ -1,1 +1,1 @@
-from .mymodule import AsgiApplication
+from .mymodule import application
