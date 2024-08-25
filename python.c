@@ -59,8 +59,9 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
 
 struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
                                          int workerid) {
-  struct casgi_app *app;
-  memset(app, 0, sizeof(struct casgi_app));
+  struct casgi_app *app = malloc(sizeof(struct casgi_app));
+  // memset(app, 0, sizeof(struct casgi_app));
+  printf("initializing python module1.1... \n");
   PyObject *asgi_file_callable;
 
   Py_Initialize();
