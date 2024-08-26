@@ -67,6 +67,11 @@ asgi_config *read_config(const char *filename) {
 
   cJSON *socketname = cJSON_GetObjectItem(json, "socket_name");
   if (cJSON_IsString(socketname) && (socketname->valuestring != NULL)) {
+    config->socket_name = malloc(strlen(socketname->valuestring) + 1);
+    if (config->socket_name == NULL) {
+      printf("[ERROR] Memory allocation failed for socket_name.\n");
+      exit(1); // Handle error appropriately in your program
+    }
     strncpy(config->socket_name, socketname->valuestring,
             sizeof(config->socket_name) - 1);
     config->socket_name[sizeof(config->socket_name) - 1] =
@@ -74,9 +79,6 @@ asgi_config *read_config(const char *filename) {
   } else {
     printf(
         "[WARN] Invalid or missing 'socket_name' in the configuration file.\n");
-    // strncpy(config->socket_name, socket_name, strlen(socket_name) - 1);
-    // config->socket_name[sizeof(config->socket_name) - 1] =
-    //     '\0'; // Ensure null termination
   }
 
   // Clean up

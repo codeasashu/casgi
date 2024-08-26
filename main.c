@@ -98,7 +98,10 @@ int main(int argc, char *argv[]) {
     if (tcp_port == NULL) {
       tcp_port = "9125";
       printf("[WARN] socket_name not provided. defaulting to %s \n", tcp_port);
+    } else {
+      tcp_port += 1;
     }
+    printf("tcp port got here: %s\n", tcp_port);
     casgi.serverfd = bind_to_tcp(64, tcp_port);
   }
   printf("\t master listening on tcp port=%s\n", tcp_port);
