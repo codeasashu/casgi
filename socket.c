@@ -1,3 +1,4 @@
+#include "agi.h"
 #include "asgi.h"
 
 #define AGI_READ_CHUNK 256
@@ -46,7 +47,7 @@ int bind_to_tcp(int listen_queue, char *tcp_port) {
   return serverfd;
 }
 
-int wsgi_req_accept(int fd, struct wsgi_request *wsgi_req) {
+int wsgi_req_accept(int fd, struct asgi_request *wsgi_req) {
   printf("worker %d preparing to accept connections. (serverfd: %d)\n",
          casgi.mywid, fd);
   wsgi_req->poll.fd = accept(fd, (struct sockaddr *)&wsgi_req->c_addr,
@@ -118,18 +119,18 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char **buff) {
   return total_bytes_read; // Return the total number of bytes read
 }
 
-int wsgi_req_recv(struct wsgi_request *wsgi_req) {
+int wsgi_req_recv(struct asgi_request *wsgi_req) {
   printf("received request in worker: %d\n", casgi.mywid);
   wsgi_req->poll.events = POLLIN;
   if (!casgi_parse_response(&wsgi_req->poll, 4, &wsgi_req->buffer)) {
     return -1;
   }
 
-  printf("Received: %s\n", wsgi_req->buffer);
+  struct agi_header agi_header;
+  memset(&agi_header, 0, sizeof(struct agi_header));
+  agi_header.env = malloc(sizeof(struct agi_pair) * 20);
+  int parsedLines = parse_agi_data(wsgi_req->buffer, &agi_header);
+  printf("parsed AGI data. total lines=%d\n", parsedLines);
   python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable);
-  // enter harakiri mode
-  // wsgi_req->async_status =
-  //     (*uwsgi.shared->hooks[wsgi_req->uh.modifier1])(&uwsgi, wsgi_req);
-  //
   return 0;
 }

@@ -28,8 +28,8 @@ struct casgi_server {
   int mywid;
   struct asgi_config *config;
   struct casgi_worker *workers;
-  struct wsgi_request *wsgi_requests;
-  struct wsgi_request *wsgi_req;
+  struct asgi_request *wsgi_requests;
+  struct asgi_request *wsgi_req;
 };
 
 // Each worker is a python interpreter, running in fork mode
@@ -50,7 +50,7 @@ struct casgi_app {
   int requests;
 };
 
-struct wsgi_request {
+struct asgi_request {
   int app_id;
 
   struct pollfd poll;
@@ -84,5 +84,5 @@ void grace_them_all(void);
 void reload_me(void);
 void end_me(void);
 int bind_to_tcp(int, char *);
-int wsgi_req_accept(int, struct wsgi_request *);
-int wsgi_req_recv(struct wsgi_request *);
+int wsgi_req_accept(int, struct asgi_request *);
+int wsgi_req_recv(struct asgi_request *);

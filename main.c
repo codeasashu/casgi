@@ -79,12 +79,12 @@ int main(int argc, char *argv[]) {
   }
   memset(casgi.workers, 0, sizeof(struct casgi_worker) * 2);
 
-  casgi.wsgi_requests = malloc(sizeof(struct wsgi_request) * 1);
+  casgi.wsgi_requests = malloc(sizeof(struct asgi_request) * 1);
   if (casgi.wsgi_requests == NULL) {
     printf("unable to allocate memory for requests.\n");
     exit(1);
   }
-  memset(casgi.wsgi_requests, 0, sizeof(struct wsgi_request) * 1);
+  memset(casgi.wsgi_requests, 0, sizeof(struct asgi_request) * 1);
   // by default set wsgi_req to the first slot
   casgi.wsgi_req = casgi.wsgi_requests;
   load_config();
