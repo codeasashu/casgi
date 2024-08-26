@@ -62,7 +62,7 @@ struct wsgi_request {
   struct timeval start_of_request;
   struct timeval end_of_request;
 
-  char buffer[100];
+  char *buffer;
 };
 
 asgi_config *read_config(const char *filename);

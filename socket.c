@@ -1,5 +1,7 @@
 #include "asgi.h"
 
+#define AGI_READ_CHUNK 256
+
 int bind_to_tcp(int listen_queue, char *tcp_port) {
 
   printf("listening 1...\n");
@@ -11,6 +13,7 @@ int bind_to_tcp(int listen_queue, char *tcp_port) {
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
   if (getaddrinfo(NULL, tcp_port, &hints, &res)) {
     printf("[ERROR] getaddrinfo()");
     exit(1);
@@ -59,61 +62,101 @@ int wsgi_req_accept(int workerid, int fd, struct wsgi_request *wsgi_req) {
   return 0;
 }
 
-int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
-  int rlen, i;
-  size_t bytes_read;
+int casgi_parse_response(struct pollfd *upoll, int timeout, char **buff) {
+  int rlen, i, total_bytes_read = 0;
+  size_t bytes_read, buffer_size = AGI_READ_CHUNK;
+
+  *buff = (char *)malloc(buffer_size);
+  if (*buff == NULL) {
+    printf("Memory allocation error\n");
+    return -1;
+  }
 
   if (!timeout)
     timeout = 1;
 
-  printf("reading socket=%d, timeout=%ds\n", upoll->fd, timeout);
-  /* first 4 byte header */
-  rlen = poll(upoll, 1, timeout * 1000);
-  if (rlen < 0) {
-    printf("poll()\n");
-    exit(1);
-  } else if (rlen == 0) {
-    printf("timeout. skip request\n");
-    close(upoll->fd);
-    return 0;
-  }
-  printf("%d ready events\n", rlen);
-
-  rlen = read(upoll->fd, buff, sizeof(buff) + 1);
-  if (rlen > 0 && rlen < (sizeof(buff) + 1)) {
-    i = rlen;
-    while (i < (sizeof(buff) + 1)) {
-      rlen = poll(upoll, 1, timeout * 1000);
-      if (rlen < 0) {
-        printf("poll()");
-        exit(1);
-      } else if (rlen == 0) {
-        printf("timeout waiting for header. skip request.\n");
-        close(upoll->fd);
-        break;
-      }
-      rlen = read(upoll->fd, (char *)(buff) + i, sizeof(buff) + 1 - i);
-      if (rlen <= 0) {
-        printf("broken header. skip request.\n");
-        close(upoll->fd);
-        break;
-      }
-      i += rlen;
-    }
-    if (i < (sizeof(buff) + 1)) {
+  while (1) {
+    rlen = poll(upoll, 1, timeout * 1000);
+    if (rlen < 0) {
+      printf("poll()\n");
+      exit(1);
+    } else if (rlen == 0) {
+      printf("timeout. skip request\n");
+      close(upoll->fd);
       return 0;
     }
-  } else if (rlen <= 0) {
-    printf("invalid request header size: %d...skip\n", rlen);
-    close(upoll->fd);
-    return 0;
+    printf("%d ready events\n", rlen);
+    rlen = read(upoll->fd, *buff + total_bytes_read, AGI_READ_CHUNK);
+    if (rlen <= 0) {
+      if (rlen < 0) {
+        printf("read() error\n");
+      }
+      break;
+    }
+
+    total_bytes_read += rlen;
+    if (total_bytes_read + AGI_READ_CHUNK > buffer_size) {
+      buffer_size *= 2;
+      char *new_buff = (char *)realloc(*buff, buffer_size);
+      if (new_buff == NULL) {
+        printf("Memory reallocation error\n");
+        free(*buff);
+        return -1;
+      }
+      *buff = new_buff;
+    }
   }
-  return 1;
+
+  (*buff)[total_bytes_read] = '\0';
+  printf("Total bytes read: %d\n", total_bytes_read);
+  return total_bytes_read; // Return the total number of bytes read
+
+  // rlen = poll(upoll, 1, timeout * 1000);
+  // if (rlen < 0) {
+  //   printf("poll()\n");
+  //   exit(1);
+  // } else if (rlen == 0) {
+  //   printf("timeout. skip request\n");
+  //   close(upoll->fd);
+  //   return 0;
+  // }
+  // printf("%d ready events\n", rlen);
+  //
+  // rlen = read(upoll->fd, buff, sizeof(buff) + 1);
+  // if (rlen > 0 && rlen < (sizeof(buff) + 1)) {
+  //   i = rlen;
+  //   while (i < (sizeof(buff) + 1)) {
+  //     rlen = poll(upoll, 1, timeout * 1000);
+  //     if (rlen < 0) {
+  //       printf("poll()");
+  //       exit(1);
+  //     } else if (rlen == 0) {
+  //       printf("timeout waiting for header. skip request.\n");
+  //       close(upoll->fd);
+  //       break;
+  //     }
+  //     rlen = read(upoll->fd, (char *)(buff) + i, sizeof(buff) + 1 - i);
+  //     if (rlen <= 0) {
+  //       printf("broken header. skip request.\n");
+  //       close(upoll->fd);
+  //       break;
+  //     }
+  //     i += rlen;
+  //   }
+  //   if (i < (sizeof(buff) + 1)) {
+  //     return 0;
+  //   }
+  // } else if (rlen <= 0) {
+  //   printf("invalid request header size: %d...skip\n", rlen);
+  //   close(upoll->fd);
+  //   return 0;
+  // }
+  // return 1;
 }
 
 int wsgi_req_recv(struct wsgi_request *wsgi_req) {
   wsgi_req->poll.events = POLLIN;
-  if (!casgi_parse_response(&wsgi_req->poll, 4, wsgi_req->buffer)) {
+  if (!casgi_parse_response(&wsgi_req->poll, 4, &wsgi_req->buffer)) {
     return -1;
   }
 
