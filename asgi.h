@@ -84,5 +84,5 @@ void grace_them_all(void);
 void reload_me(void);
 void end_me(void);
 int bind_to_tcp(int, char *);
-int wsgi_req_accept(int, int, struct wsgi_request *);
+int wsgi_req_accept(int, struct wsgi_request *);
 int wsgi_req_recv(struct wsgi_request *);

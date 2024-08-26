@@ -2,6 +2,8 @@
 
 #define AGI_READ_CHUNK 256
 
+extern struct casgi_server casgi;
+
 int bind_to_tcp(int listen_queue, char *tcp_port) {
 
   printf("listening 1...\n");
@@ -44,20 +46,19 @@ int bind_to_tcp(int listen_queue, char *tcp_port) {
   return serverfd;
 }
 
-int wsgi_req_accept(int workerid, int fd, struct wsgi_request *wsgi_req) {
-
+int wsgi_req_accept(int fd, struct wsgi_request *wsgi_req) {
   printf("worker %d preparing to accept connections. (serverfd: %d)\n",
-         workerid, fd);
+         casgi.mywid, fd);
   wsgi_req->poll.fd = accept(fd, (struct sockaddr *)&wsgi_req->c_addr,
                              (socklen_t *)&wsgi_req->c_len);
 
   if (wsgi_req->poll.fd < 0) {
-    printf("worker %d accept(). error=%s\n", workerid,
+    printf("worker %d accept(). error=%s\n", casgi.mywid,
            strerror(wsgi_req->poll.fd));
     return -1;
   }
   printf("worker %d ready to accept connections. clientfd=%d (serverfd: %d)\n",
-         workerid, wsgi_req->poll.fd, fd);
+         casgi.mywid, wsgi_req->poll.fd, fd);
 
   return 0;
 }
@@ -118,13 +119,14 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char **buff) {
 }
 
 int wsgi_req_recv(struct wsgi_request *wsgi_req) {
+  printf("received request in worker: %d\n", casgi.mywid);
   wsgi_req->poll.events = POLLIN;
   if (!casgi_parse_response(&wsgi_req->poll, 4, &wsgi_req->buffer)) {
     return -1;
   }
 
   printf("Received: %s\n", wsgi_req->buffer);
-
+  python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable);
   // enter harakiri mode
   // wsgi_req->async_status =
   //     (*uwsgi.shared->hooks[wsgi_req->uh.modifier1])(&uwsgi, wsgi_req);

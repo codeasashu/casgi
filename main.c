@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
   while (casgi.workers[casgi.mywid].manage_next_request) {
     // wsgi_req_setup(uwsgi.wsgi_req, 0);
 
-    if (wsgi_req_accept(casgi.mywid, casgi.serverfd, casgi.wsgi_req)) {
+    if (wsgi_req_accept(casgi.serverfd, casgi.wsgi_req)) {
       sleep(1);
       continue;
     }
