@@ -70,8 +70,7 @@ int wsgi_req_accept(int fd, struct asgi_request *wsgi_req) {
 }
 
 int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
-  int rlen, rlen2, i, total_bytes_read = 0;
-  size_t bytes_read, buffer_size = AGI_READ_CHUNK;
+  int rlen, rlen2, total_bytes_read = 0;
 
   if (!timeout)
     timeout = 1;
@@ -131,7 +130,7 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
   struct agi_header agi_header;
   memset(&agi_header, 0, sizeof(struct agi_header));
   agi_header.env = malloc(sizeof(struct agi_pair) * 20);
-  int parsedLines = parse_agi_data(wsgi_req->buffer, &agi_header);
+  parse_agi_data(wsgi_req->buffer, &agi_header);
   free(wsgi_req->buffer);
   printf("parsed AGI data. total lines=%d. first item: key=%s, value=%s\n",
          agi_header.env_lines, agi_header.env[0].key, agi_header.env[0].value);

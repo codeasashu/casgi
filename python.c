@@ -65,6 +65,7 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
     return NULL;
   }
 
+  app = malloc(sizeof(struct casgi_app));
   memset(app, 0, sizeof(struct casgi_app));
 
   Py_Initialize();
@@ -75,7 +76,7 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
   }
   PyThreadState_Swap(app->interpreter);
   static PyMethodDef FputsMethods[] = {
-      {"fputs", method_fputs, METH_VARARGS, ""}};
+      {"fputs", method_fputs, METH_VARARGS, ""}, {NULL, NULL, 0, NULL}};
 
   wsgi_fputs = PyCFunction_New(FputsMethods, NULL);
 
