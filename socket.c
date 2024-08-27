@@ -1,4 +1,3 @@
-#include "agi.h"
 #include "asgi.h"
 
 #define AGI_READ_CHUNK 256
@@ -130,7 +129,8 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
   memset(&agi_header, 0, sizeof(struct agi_header));
   agi_header.env = malloc(sizeof(struct agi_pair) * 20);
   int parsedLines = parse_agi_data(wsgi_req->buffer, &agi_header);
-  printf("parsed AGI data. total lines=%d\n", parsedLines);
-  python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable);
+  printf("parsed AGI data. total lines=%d. first item: key=%s, value=%s\n",
+         agi_header.env_lines, agi_header.env[0].key, agi_header.env[0].value);
+  python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable, &agi_header);
   return 0;
 }

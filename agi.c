@@ -1,4 +1,3 @@
-#include "agi.h"
 #include "asgi.h"
 
 int parse_agi_line(const char *line, struct agi_pair *pair) {
@@ -61,6 +60,6 @@ int parse_agi_data(char *data, struct agi_header *header) {
     }
     line = strtok(NULL, "\n");
   }
-
+  header->env_lines = count;
   return count;
 }

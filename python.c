@@ -92,10 +92,20 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
   Py_Finalize();
 }
 
-int python_call_asgi(PyObject *callable) {
-  PyObject *pValue = PyUnicode_FromString("hello");
-  PyObject *args = PyTuple_Pack(1, pValue);
+int python_call_asgi(PyObject *callable, struct agi_header *agi_header) {
+  PyObject *py_dict = PyDict_New();
+
+  // Loop through each agi_pair and add it to the dictionary
+  for (int i = 0; i < agi_header->env_lines; i++) {
+    PyObject *py_value = PyUnicode_FromString(agi_header->env[i].value);
+    PyDict_SetItemString(py_dict, agi_header->env[i].key, py_value);
+    Py_DECREF(py_value);
+  }
+
+  PyObject *args = PyTuple_Pack(1, py_dict);
   python_call(callable, args);
+  Py_DECREF(py_dict);
+  Py_DECREF(args);
   return 0;
 }
 

@@ -4,6 +4,7 @@
   printf("%s: %s [%s line %d]\n", x, strerror(errno), __FILE__, __LINE__);
 #define CASGI_VERSION "0.0.1-dev"
 
+#include "agi.h"
 #include "cJSON.h"
 #include "netdb.h"
 #include <Python.h>
@@ -73,7 +74,6 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
                                          int workerid);
 
 PyObject *python_call(PyObject *callable, PyObject *args);
-int python_call_asgi(PyObject *callable);
 
 void warn_pipe(void);
 void goodbye_cruel_world(void);
@@ -86,3 +86,4 @@ void end_me(void);
 int bind_to_tcp(int, char *);
 int wsgi_req_accept(int, struct asgi_request *);
 int wsgi_req_recv(struct asgi_request *);
+int python_call_asgi(PyObject *callable, struct agi_header *);

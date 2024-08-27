@@ -9,6 +9,7 @@ struct agi_pair {
 
 struct agi_header {
   struct agi_pair *env;
+  int env_lines;
 };
 
 int parse_agi_data(char *, struct agi_header *);
