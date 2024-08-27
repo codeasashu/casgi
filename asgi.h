@@ -21,10 +21,12 @@ typedef struct asgi_config {
   char app_path[256];
   char module[256];
   char *socket_name;
+  char pyhome[256];
 } asgi_config;
 
 struct casgi_server {
   pid_t pid;
+  char *pyhome;
   int serverfd;
   int mywid;
   int buffer_size;

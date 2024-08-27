@@ -122,20 +122,26 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
     printf("malloc() wsgi_req\n");
     exit(1);
   }
-  memset(wsgi_req->buffer, 0, casgi.buffer_size);
+  // memset(wsgi_req->buffer, 0, casgi.buffer_size);
   if (!casgi_parse_response(&wsgi_req->poll, 4, wsgi_req->buffer)) {
     return -1;
   }
 
   struct agi_header agi_header;
-  memset(&agi_header, 0, sizeof(struct agi_header));
-  agi_header.env = malloc(sizeof(struct agi_pair) * 20);
+  // memset(&agi_header, 0, sizeof(struct agi_header));
+  agi_header.env = malloc(sizeof(struct agi_pair) * 30);
+  if (!agi_header.env) {
+    printf("malloc() agi_header\n");
+    exit(1);
+  }
   parse_agi_data(wsgi_req->buffer, &agi_header);
-  free(wsgi_req->buffer);
-  printf("parsed AGI data. total lines=%d. first item: key=%s, value=%s\n",
-         agi_header.env_lines, agi_header.env[0].key, agi_header.env[0].value);
+  // free(wsgi_req->buffer);
+  // printf("parsed AGI data. total lines=%d. first item: key=%s, value=%s\n",
+  //        agi_header.env_lines, agi_header.env[0].key,
+  //        agi_header.env[0].value);
   // python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable,
   // &agi_header);
   python_request_handler(casgi.workers[casgi.mywid].app, &agi_header);
+  free(wsgi_req->buffer);
   return 0;
 }
