@@ -65,6 +65,17 @@ asgi_config *read_config(const char *filename) {
     config = NULL;
   }
 
+  cJSON *pyhome = cJSON_GetObjectItem(json, "home");
+  if (cJSON_IsString(pyhome) && (pyhome->valuestring != NULL)) {
+    printf("PYHOME: %s.\n", pyhome->valuestring);
+    // config->pyhome = malloc(strlen(pyhome->valuestring) + 1);
+    // memset(config->pyhome, '\0', sizeof(pyhome->valuestring) + 1);
+    strncpy(config->pyhome, pyhome->valuestring, sizeof(config->pyhome) - 1);
+    config->pyhome[sizeof(config->pyhome) - 1] =
+        '\0'; // Ensure null termination
+    printf("PYHOME2: %s.\n", config->pyhome);
+  }
+
   cJSON *socketname = cJSON_GetObjectItem(json, "socket_name");
   if (cJSON_IsString(socketname) && (socketname->valuestring != NULL)) {
     config->socket_name = malloc(strlen(socketname->valuestring) + 1);

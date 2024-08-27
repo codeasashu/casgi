@@ -1,4 +1,5 @@
 #define PY_SSIZE_T_CLEAN
+#define AGI_READ_CHUNK 256
 
 #define casgi_error(x)                                                         \
   printf("%s: %s [%s line %d]\n", x, strerror(errno), __FILE__, __LINE__);
@@ -21,12 +22,15 @@ typedef struct asgi_config {
   char app_path[256];
   char module[256];
   char *socket_name;
+  char pyhome[256];
 } asgi_config;
 
 struct casgi_server {
   pid_t pid;
+  char *pyhome;
   int serverfd;
   int mywid;
+  int buffer_size;
   struct asgi_config *config;
   struct casgi_worker *workers;
   struct asgi_request *wsgi_requests;
@@ -47,6 +51,7 @@ struct casgi_worker {
 struct casgi_app {
   PyThreadState *interpreter;
   PyObject *asgi_callable;
+  PyObject *asgi_fputs;
   PyObject *pymain_dict;
   int requests;
 };
@@ -65,6 +70,8 @@ struct asgi_request {
 
   char *buffer;
 };
+
+struct asgi_request *current_asgi_req(struct casgi_server *);
 
 asgi_config *read_config(const char *filename);
 
@@ -86,4 +93,7 @@ void end_me(void);
 int bind_to_tcp(int, char *);
 int wsgi_req_accept(int, struct asgi_request *);
 int wsgi_req_recv(struct asgi_request *);
-int python_call_asgi(PyObject *callable, struct agi_header *);
+int python_call_asgi(PyObject *, struct agi_header *);
+int python_request_handler(struct casgi_app *, struct agi_header *);
+int casgi_get_response_line(struct pollfd *, char *);
+PyObject *method_fputs(PyObject *, PyObject *);

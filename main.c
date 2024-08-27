@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
   masterpid = getpid();
   memset(&casgi, 0, sizeof(struct casgi_server));
   casgi.pid = masterpid;
+  casgi.buffer_size = 4096;
 
   // 4 workers
   casgi.workers = malloc(sizeof(struct casgi_worker) * 2);
