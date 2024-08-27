@@ -1,6 +1,31 @@
 #include "asgi.h"
 #include "pylifecycle.h"
 
+extern struct casgi_server casgi;
+
+PyObject *method_fputs(PyObject *self, PyObject *args) {
+  struct asgi_request *asgi_req = current_asgi_req(&casgi);
+
+  char *str, *filename = NULL;
+  char response[100] = "ashutosh";
+
+  /* Parse arguments */
+  if (!PyArg_ParseTuple(args, "s", &str)) {
+    return NULL;
+  }
+
+  // FILE *fp = fopen(filename, "w");
+  // bytes_copied = fputs(str, fp);
+  printf("received cmd=%s (pid=%d), app_id=%d \n", str, getpid(),
+         asgi_req->app_id);
+  write(asgi_req->poll.fd, str, strlen(str));
+  printf("written cmd=%s (pid=%d), app_id=%d \n", str, getpid(),
+         asgi_req->app_id);
+  // fclose(fp);
+
+  return PyUnicode_FromString(response);
+}
+
 void init_paths(const char *mypath) {
 
   int i;
@@ -30,7 +55,7 @@ void init_paths(const char *mypath) {
 }
 
 struct casgi_app *init_casgi_app(PyObject *my_callable) {
-  PyObject *wsgi_module, *wsgi_dict = NULL;
+  PyObject *wsgi_module, *wsgi_fputs, *wsgi_dict = NULL;
   int id;
 
   struct casgi_app *app;
@@ -49,10 +74,16 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
     exit(1);
   }
   PyThreadState_Swap(app->interpreter);
+  static PyMethodDef FputsMethods[] = {
+      {"fputs", method_fputs, METH_VARARGS, ""}};
+
+  wsgi_fputs = PyCFunction_New(FputsMethods, NULL);
+
   // init_uwsgi_vars();
   printf("interpreter for app %d initialized.\n", id);
 
   app->asgi_callable = my_callable;
+  app->asgi_fputs = wsgi_fputs;
   Py_INCREF(my_callable);
   return app;
 }
@@ -60,7 +91,7 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
 struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
                                          int workerid) {
   struct casgi_app *app = malloc(sizeof(struct casgi_app));
-  // memset(app, 0, sizeof(struct casgi_app));
+  memset(app, 0, sizeof(struct casgi_app));
   printf("initializing python module1.1... \n");
   PyObject *asgi_file_callable;
 
@@ -103,6 +134,25 @@ int python_call_asgi(PyObject *callable, struct agi_header *agi_header) {
   }
 
   PyObject *args = PyTuple_Pack(1, py_dict);
+  python_call(callable, args);
+  Py_DECREF(py_dict);
+  Py_DECREF(args);
+  return 0;
+}
+
+int python_request_handler(struct casgi_app *app,
+                           struct agi_header *agi_header) {
+  PyObject *callable = app->asgi_callable;
+  PyObject *py_dict = PyDict_New();
+
+  // Loop through each agi_pair and add it to the dictionary
+  for (int i = 0; i < agi_header->env_lines; i++) {
+    PyObject *py_value = PyUnicode_FromString(agi_header->env[i].value);
+    PyDict_SetItemString(py_dict, agi_header->env[i].key, py_value);
+    Py_DECREF(py_value);
+  }
+
+  PyObject *args = PyTuple_Pack(2, py_dict, app->asgi_fputs);
   python_call(callable, args);
   Py_DECREF(py_dict);
   Py_DECREF(args);

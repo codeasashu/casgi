@@ -4,6 +4,12 @@
 
 extern struct casgi_server casgi;
 
+struct asgi_request *current_asgi_req(struct casgi_server *casgi) {
+
+  struct asgi_request *asgi_req = casgi->wsgi_req;
+  return asgi_req;
+}
+
 int bind_to_tcp(int listen_queue, char *tcp_port) {
 
   printf("listening 1...\n");
@@ -63,20 +69,15 @@ int wsgi_req_accept(int fd, struct asgi_request *wsgi_req) {
   return 0;
 }
 
-int casgi_parse_response(struct pollfd *upoll, int timeout, char **buff) {
-  int rlen, i, total_bytes_read = 0;
+int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
+  int rlen, rlen2, i, total_bytes_read = 0;
   size_t bytes_read, buffer_size = AGI_READ_CHUNK;
-
-  *buff = (char *)malloc(buffer_size);
-  if (*buff == NULL) {
-    printf("Memory allocation error\n");
-    return -1;
-  }
 
   if (!timeout)
     timeout = 1;
 
   while (1) {
+    int fullpkt = 0;
     rlen = poll(upoll, 1, timeout * 1000);
     if (rlen < 0) {
       printf("poll()\n");
@@ -86,42 +87,44 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char **buff) {
       break;
     }
     printf("%d ready events\n", rlen);
-    rlen = read(upoll->fd, *buff + total_bytes_read, AGI_READ_CHUNK);
-    if (rlen <= 0) {
-      if (rlen < 0) {
-        printf("read() error\n");
+    while (total_bytes_read < 1024) {
+      printf("gona read\n");
+      rlen2 = read(upoll->fd, buff + total_bytes_read, AGI_READ_CHUNK);
+      if (rlen2 <= 0) {
+        if (rlen2 < 0) {
+          printf("read() error\n");
+          free(buff);
+        }
+        break;
       }
-      break;
-    }
-
-    total_bytes_read += rlen;
-    if (total_bytes_read + AGI_READ_CHUNK > buffer_size) {
-      buffer_size *= 2;
-      char *new_buff = (char *)realloc(*buff, buffer_size);
-      if (new_buff == NULL) {
-        printf("Memory reallocation error\n");
-        free(*buff);
-        return -1;
+      total_bytes_read += rlen2;
+      if (total_bytes_read >= 2 && buff[total_bytes_read - 1] == '\n' &&
+          buff[total_bytes_read - 2] == '\n') {
+        fullpkt = 1;
+        break;
       }
-      *buff = new_buff;
     }
-
-    // AGI send blank line (\n\n) to indicate end of request data
-    if (total_bytes_read >= 2 && (*buff)[total_bytes_read - 1] == '\n' &&
-        (*buff)[total_bytes_read - 2] == '\n') {
+    if (fullpkt == 1) {
       break;
     }
   }
 
-  (*buff)[total_bytes_read] = '\0';
+  buff[total_bytes_read] = '\0';
   printf("Total bytes read: %d\n", total_bytes_read);
-  return total_bytes_read; // Return the total number of bytes read
+  return total_bytes_read;
 }
 
 int wsgi_req_recv(struct asgi_request *wsgi_req) {
   printf("received request in worker: %d\n", casgi.mywid);
   wsgi_req->poll.events = POLLIN;
-  if (!casgi_parse_response(&wsgi_req->poll, 4, &wsgi_req->buffer)) {
+  wsgi_req->app_id = casgi.mywid;
+  wsgi_req->buffer = malloc(casgi.buffer_size);
+  if (!wsgi_req->buffer) {
+    printf("malloc() wsgi_req\n");
+    exit(1);
+  }
+  memset(wsgi_req->buffer, 0, casgi.buffer_size);
+  if (!casgi_parse_response(&wsgi_req->poll, 4, wsgi_req->buffer)) {
     return -1;
   }
 
@@ -129,8 +132,11 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
   memset(&agi_header, 0, sizeof(struct agi_header));
   agi_header.env = malloc(sizeof(struct agi_pair) * 20);
   int parsedLines = parse_agi_data(wsgi_req->buffer, &agi_header);
+  free(wsgi_req->buffer);
   printf("parsed AGI data. total lines=%d. first item: key=%s, value=%s\n",
          agi_header.env_lines, agi_header.env[0].key, agi_header.env[0].value);
-  python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable, &agi_header);
+  // python_call_asgi(casgi.workers[casgi.mywid].app->asgi_callable,
+  // &agi_header);
+  python_request_handler(casgi.workers[casgi.mywid].app, &agi_header);
   return 0;
 }

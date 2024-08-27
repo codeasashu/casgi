@@ -27,6 +27,7 @@ struct casgi_server {
   pid_t pid;
   int serverfd;
   int mywid;
+  int buffer_size;
   struct asgi_config *config;
   struct casgi_worker *workers;
   struct asgi_request *wsgi_requests;
@@ -47,6 +48,7 @@ struct casgi_worker {
 struct casgi_app {
   PyThreadState *interpreter;
   PyObject *asgi_callable;
+  PyObject *asgi_fputs;
   PyObject *pymain_dict;
   int requests;
 };
@@ -65,6 +67,8 @@ struct asgi_request {
 
   char *buffer;
 };
+
+struct asgi_request *current_asgi_req(struct casgi_server *);
 
 asgi_config *read_config(const char *filename);
 
@@ -86,4 +90,6 @@ void end_me(void);
 int bind_to_tcp(int, char *);
 int wsgi_req_accept(int, struct asgi_request *);
 int wsgi_req_recv(struct asgi_request *);
-int python_call_asgi(PyObject *callable, struct agi_header *);
+int python_call_asgi(PyObject *, struct agi_header *);
+int python_request_handler(struct casgi_app *, struct agi_header *);
+PyObject *method_fputs(PyObject *, PyObject *);
