@@ -127,8 +127,10 @@ int casgi_get_response_line(struct pollfd *upoll, char *buff) {
       break;
     }
     total_bytes_read += rlen2;
-    if (total_bytes_read >= 2 && buff[total_bytes_read - 1] == '\n' &&
-        buff[total_bytes_read - 2] == '\n') {
+
+    printf("read response from asterisk: %s, (%d bytes)\n", buff,
+           total_bytes_read);
+    if (total_bytes_read >= 1 && buff[total_bytes_read - 1] == '\n') {
       fullpkt = 1;
       break;
     }

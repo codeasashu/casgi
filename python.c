@@ -24,8 +24,6 @@ PyObject *get_casgi_pydict(char *module) {
 }
 
 void set_dyn_pyhome(struct casgi_server *casgi) {
-
-  char app_path[255] = "/Users/ashutosh/code/office/engine-v4/";
   char venv_version[30];
   PyObject *site_module;
 
@@ -37,7 +35,7 @@ void set_dyn_pyhome(struct casgi_server *casgi) {
     exit(1);
   }
 
-  if (PyList_Insert(pypath, 0, PyUnicode_FromString(app_path))) {
+  if (PyList_Insert(pypath, 0, PyUnicode_FromString(casgi->config->app_path))) {
     PyErr_Print();
   }
   // simulate a pythonhome directive
@@ -78,7 +76,6 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
   struct asgi_request *asgi_req = current_asgi_req(&casgi);
 
   char *str;
-  char response[100] = "ashutosh";
 
   /* Parse arguments */
   if (!PyArg_ParseTuple(args, "s", &str)) {
@@ -92,8 +89,10 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
          asgi_req->app_id);
 
   int bytes_read = casgi_get_response_line(&asgi_req->poll, buff);
-  printf("buffer response read: %s, bytes=%d \n", buff, bytes_read);
-  return PyUnicode_FromString(buff);
+  char *ast_resp = strndup(buff, bytes_read);
+  free(buff);
+  ast_resp[bytes_read] = '\0';
+  return PyUnicode_FromString(ast_resp);
 }
 
 void init_paths(const char *mypath) {
@@ -198,8 +197,8 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
 
   Py_Initialize();
 
-  // init_paths(casgi->config->app_path);
   set_dyn_pyhome(casgi);
+  init_paths(casgi->config->app_path);
 
   printf("initializing python module: %s\n", casgi->config->module);
   // Load the module object
@@ -256,13 +255,6 @@ int python_request_handler(struct casgi_app *app,
     Py_DECREF(py_value);
   }
 
-  // setenv("PYTHONPATH",
-  //        "/Users/ashutosh/code/office/engine-v4/venv/lib/"
-  //        "python3.12/site-packages",
-  //        1);
-  // sprintf(python_cmd, "import sys; sys.path.insert(0, '%s')",
-  //         casgi.config->app_path);
-  // PyRun_SimpleString(python_cmd);
   PyObject *args = PyTuple_Pack(2, py_dict, app->asgi_fputs);
   python_call(callable, args);
   Py_DECREF(py_dict);
@@ -274,9 +266,6 @@ PyObject *python_call(PyObject *callable, PyObject *args) {
 
   PyObject *pyret;
 
-  PyRun_SimpleString("import sys; print('Updated sys.path:', sys.path)");
-  // PyRun_SimpleString("import sys; print('Updated2 sys.path:', sys.path)");
-  // PyObject *pValue = PyUnicode_FromString("hello");
   pyret = PyObject_Call(callable, args, NULL);
 
   if (pyret) {
