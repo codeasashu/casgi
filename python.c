@@ -72,6 +72,9 @@ void set_dyn_pyhome(struct casgi_server *casgi) {
 }
 
 PyObject *method_fputs(PyObject *self, PyObject *args) {
+  char *buff;
+  buff = malloc(casgi.buffer_size);
+
   struct asgi_request *asgi_req = current_asgi_req(&casgi);
 
   char *str;
@@ -87,7 +90,10 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
   write(asgi_req->poll.fd, str, strlen(str));
   printf("written cmd=%s (pid=%d), app_id=%d \n", str, getpid(),
          asgi_req->app_id);
-  return PyUnicode_FromString(response);
+
+  int bytes_read = casgi_get_response_line(&asgi_req->poll, buff);
+  printf("buffer response read: %s, bytes=%d \n", buff, bytes_read);
+  return PyUnicode_FromString(buff);
 }
 
 void init_paths(const char *mypath) {

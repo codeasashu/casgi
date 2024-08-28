@@ -1,7 +1,5 @@
 #include "asgi.h"
 
-#define AGI_READ_CHUNK 256
-
 extern struct casgi_server casgi;
 
 struct asgi_request *current_asgi_req(struct casgi_server *casgi) {
@@ -104,6 +102,34 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
       }
     }
     if (fullpkt == 1) {
+      break;
+    }
+  }
+
+  buff[total_bytes_read] = '\0';
+  printf("Total bytes read: %d\n", total_bytes_read);
+  return total_bytes_read;
+}
+
+int casgi_get_response_line(struct pollfd *upoll, char *buff) {
+  int rlen, rlen2, total_bytes_read = 0;
+
+  int fullpkt = 0;
+
+  while (total_bytes_read < 1024) {
+    printf("gona read response from asterisk\n");
+    rlen2 = read(upoll->fd, buff + total_bytes_read, AGI_READ_CHUNK);
+    if (rlen2 <= 0) {
+      if (rlen2 < 0) {
+        printf("read() error\n");
+        free(buff);
+      }
+      break;
+    }
+    total_bytes_read += rlen2;
+    if (total_bytes_read >= 2 && buff[total_bytes_read - 1] == '\n' &&
+        buff[total_bytes_read - 2] == '\n') {
+      fullpkt = 1;
       break;
     }
   }

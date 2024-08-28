@@ -1,4 +1,5 @@
 #define PY_SSIZE_T_CLEAN
+#define AGI_READ_CHUNK 256
 
 #define casgi_error(x)                                                         \
   printf("%s: %s [%s line %d]\n", x, strerror(errno), __FILE__, __LINE__);
@@ -94,4 +95,5 @@ int wsgi_req_accept(int, struct asgi_request *);
 int wsgi_req_recv(struct asgi_request *);
 int python_call_asgi(PyObject *, struct agi_header *);
 int python_request_handler(struct casgi_app *, struct agi_header *);
+int casgi_get_response_line(struct pollfd *, char *);
 PyObject *method_fputs(PyObject *, PyObject *);
