@@ -3,6 +3,7 @@
 // #include <cstdlib>
 
 extern struct casgi_server casgi;
+extern volatile int terminate_thread;
 
 PyObject *get_casgi_pydict(char *module) {
 
@@ -11,7 +12,8 @@ PyObject *get_casgi_pydict(char *module) {
   printf("(worker %d) importing module %s ... \n", casgi.mywid, module);
   wsgi_module = PyImport_ImportModule(module);
   if (!wsgi_module) {
-    printf("(worker %d) unable to import module %s ... \n", casgi.mywid, module);
+    printf("(worker %d) unable to import module %s ... \n", casgi.mywid,
+           module);
     PyErr_Print();
     return NULL;
   }
@@ -95,7 +97,8 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  printf("(worker %d) received cmd=%s, fd=%d \n", casgi.mywid, str, asgi_req->epoll_fd);
+  printf("(worker %d) received cmd=%s, fd=%d \n", casgi.mywid, str,
+         asgi_req->epoll_fd);
   event.events = EPOLLOUT;
   // event.data.fd = asgi_req->epoll_fd;
   if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, asgi_req->epoll_fd, &event) == -1) {
@@ -110,19 +113,20 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
     return NULL;
   }
   if (event.events & EPOLLOUT) {
-      int written = send_asgi_line(asgi_req->epoll_fd, str);
-      if(written <= 0){
-        printf("(worker %d) write error\n", casgi.mywid);
-        exit(1);
-      }
-      printf("(worker %d) written bytes=%d, fd=%d ", casgi.mywid, written, asgi_req->epoll_fd);
+    int written = send_asgi_line(asgi_req->epoll_fd, str);
+    if (written <= 0) {
+      printf("(worker %d) write error\n", casgi.mywid);
+      exit(1);
+    }
+    printf("(worker %d) written bytes=%d, fd=%d ", casgi.mywid, written,
+           asgi_req->epoll_fd);
   }
   printf("reading asterisk response...\n");
-  //int written = write(asgi_req->epoll_fd, str, strlen(str));
+  // int written = write(asgi_req->epoll_fd, str, strlen(str));
   event.events = EPOLLIN;
   if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, asgi_req->epoll_fd, &event) == -1) {
-        perror("Failed to modify client_fd to EPOLLIN");
-        return NULL;
+    perror("Failed to modify client_fd to EPOLLIN");
+    return NULL;
   }
   printf("waiting for socket to be available...\n");
   n = epoll_wait(epoll_fd, &event, 1, -1);
@@ -133,12 +137,19 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
     return NULL;
   }
   if (event.events & EPOLLIN) {
-      int bytes_read = get_asgi_line(asgi_req->epoll_fd, buff);
-      printf("(worker %d) [agi] buff=%s\n", casgi.mywid, buff);
-      char *ast_resp = strndup(buff, bytes_read);
-      free(buff);
-      ast_resp[bytes_read] = '\0';
-      return PyUnicode_FromString(ast_resp);
+    int bytes_read = get_asgi_line(asgi_req->epoll_fd, buff);
+    printf("(worker %d) [agi] buff=%s\n", casgi.mywid, buff);
+    if (strstr(buff, "HANGUP") != NULL) {
+      printf("Hanging up the call.\n");
+      terminate_thread = 1;
+      PyErr_SetString(PyExc_RuntimeError, "Hanging up the call");
+      return NULL;
+    }
+
+    char *ast_resp = strndup(buff, bytes_read);
+    free(buff);
+    ast_resp[bytes_read] = '\0';
+    return PyUnicode_FromString(ast_resp);
   }
   return PyUnicode_FromString("");
 }
@@ -270,7 +281,6 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
   // Py_Finalize();
 }
 
-
 PyObject *init_py() {
   PyObject *asgi_file_callable;
 
@@ -283,19 +293,22 @@ PyObject *init_py() {
   printf("get GIL (app=%d)... \n", casgi.mywid);
 
   set_dyn_pyhome(&casgi);
-  printf("(worker %d) init paths %s... \n", casgi.mywid, casgi.config->app_path);
+  printf("(worker %d) init paths %s... \n", casgi.mywid,
+         casgi.config->app_path);
   init_paths(casgi.config->app_path);
 
-  printf("(worker %d) importing module %s... \n", casgi.mywid, casgi.config->module);
+  printf("(worker %d) importing module %s... \n", casgi.mywid,
+         casgi.config->module);
   // Load the module object
   PyObject *pName = PyUnicode_DecodeFSDefault(casgi.config->module);
   PyObject *pModule = PyImport_ImportModule(casgi.config->module);
-  printf("(worker %d) imported module %s !! \n", casgi.mywid, casgi.config->module);
+  printf("(worker %d) imported module %s !! \n", casgi.mywid,
+         casgi.config->module);
   Py_DECREF(pName);
   if (!pModule) {
     PyErr_Print();
     exit(1);
-     PyGILState_Release(gstate);
+    PyGILState_Release(gstate);
   }
   printf("(worker %d) finding callable 'application'... \n", casgi.mywid);
   // Get the class from the module
@@ -354,7 +367,6 @@ int python_request_handler(struct casgi_app *app,
   Py_DECREF(args);
   return 0;
 }
-
 
 int python_request_handler_v2(struct agi_header *agi_header) {
   PyObject *callable, *asgi_fputs;
