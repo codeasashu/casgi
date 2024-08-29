@@ -64,6 +64,8 @@ void reap_them_all() {
 }
 
 int main(int argc, char *argv[]) {
+  int epoll_fd;
+  struct epoll_event ev, events[10];
   pid_t pid, masterpid;
   char *tcp_port;
 
@@ -107,13 +109,38 @@ int main(int argc, char *argv[]) {
   }
   printf("\t master listening on tcp port=%s\n", tcp_port);
 
-  for (int i = 0; i < 2; i++) {
+  epoll_fd = epoll_create1(0);
+  if (epoll_fd == -1) {
+      perror("epoll_create1");
+      close(casgi.serverfd);
+      exit(EXIT_FAILURE);
+  }
+
+  ev.events = EPOLLIN;
+  ev.data.fd = casgi.serverfd;
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, casgi.serverfd, &ev) == -1) {
+      perror("epoll_ctl: listener_fd");
+      close(casgi.serverfd);
+      exit(1);
+  }
+
+  casgi.epollfd = epoll_fd;
+
+  if (!Py_IsInitialized()) {
+        Py_Initialize();
+
+        // Initialize thread support (required for multi-threading with Python)
+        PyEval_InitThreads();  // This will acquire the GIL initially
+        PyEval_SaveThread();   // Release the GIL and allow other threads to run
+  }
+
+  for (int i = 0; i < 1; i++) {
     pid = fork();
     if (pid == 0) {
       casgi.workers[i].pid = getpid();
       casgi.workers[i].id = i;
       casgi.workers[i].manage_next_request = 1;
-      casgi.workers[i].app = uwsgi_wsgi_file_config(&casgi, i);
+      // casgi.workers[i].app = uwsgi_wsgi_file_config(&casgi, i);
       casgi.mywid = i;
       printf("worker%d (pid: %d) booted\n", i, casgi.workers[i].pid);
       break;
@@ -157,20 +184,56 @@ int main(int argc, char *argv[]) {
   // }
   while (casgi.workers[casgi.mywid].manage_next_request) {
     // wsgi_req_setup(uwsgi.wsgi_req, 0);
+        printf("(worker %d): before epoll_wait on fd=%d\n", casgi.mywid, casgi.epollfd);
+        int n = epoll_wait(casgi.epollfd, events, 10, -1);
+        if (n == -1) {
+            perror("epoll_wait");
+            close(casgi.serverfd);
+            exit(1);
+        }
+        printf("(worker %d): after epoll_wait on fd=%d\n", casgi.mywid, casgi.epollfd);
 
-    if (wsgi_req_accept(casgi.serverfd, casgi.wsgi_req)) {
-      sleep(1);
-      continue;
-    }
+        for (int i = 0; i < n; i++) {
+	    if (events[i].data.fd == casgi.serverfd) {
+                printf("(worker %d): event matched on fd=%d\n", casgi.mywid, casgi.serverfd);
+		int client_fd = accept(casgi.serverfd, NULL, NULL);
+		if (client_fd == -1) {
+                    perror("accept");
+                    printf("(worker %d) accept\n", casgi.mywid);
+                } else {
+		    set_nonblocking(client_fd);
+                    ev.events = EPOLLIN | EPOLLET; // Use Edge-Triggered (ET) mode for non-blocking
+                    ev.data.fd = client_fd;
+                    if (epoll_ctl(casgi.epollfd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+                        perror("epoll_ctl: client_fd");
+                        close(client_fd);
+                    }
+                    printf("(worker %d) accepted new client on fd=%d\n", casgi.mywid, client_fd);
+		    casgi.wsgi_req->epoll_fd = client_fd;
+		    handle_request(client_fd);
+		}
+             } else {
+		printf("(worker %d) handing the client. clientfd=%d\n", casgi.mywid, events[i].data.fd);
+		// handle_request(casgi.wsgi_req->epoll_fd);
+	    }
+	}
+        printf("(worker %d) moving to next while loop\n", casgi.mywid);
+        sleep(1);
 
-    if (wsgi_req_recv(casgi.wsgi_req)) {
-      sleep(1);
-      continue;
-    }
+    // if (wsgi_req_accept(casgi.serverfd, casgi.wsgi_req)) {
+    //   sleep(1);
+    //   continue;
+    // }
+
+    // if (wsgi_req_recv(casgi.wsgi_req)) {
+    //   sleep(1);
+    //   continue;
+    // }
     // uwsgi_close_request(&uwsgi, uwsgi.wsgi_req);
   }
 
   free(casgi.workers);
+  Py_Finalize();
   //
   // Initialize the Python interpreter
   return 0;

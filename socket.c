@@ -37,6 +37,8 @@ int bind_to_tcp(int listen_queue, char *tcp_port) {
     exit(1);
   }
 
+  set_nonblocking(serverfd);
+
   if (bind(serverfd, res->ai_addr, res->ai_addrlen) != 0) {
     printf("bind()");
     exit(1);
@@ -111,34 +113,73 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
   return total_bytes_read;
 }
 
-int casgi_get_response_line(struct pollfd *upoll, char *buff) {
-  int rlen, rlen2, total_bytes_read = 0;
 
-  int fullpkt = 0;
-
+int get_asgi_response(int fd, char *buff) {
+  int rlen, total_bytes_read = 0;
   while (total_bytes_read < 1024) {
-    printf("gona read response from asterisk\n");
-    rlen2 = read(upoll->fd, buff + total_bytes_read, AGI_READ_CHUNK);
-    if (rlen2 <= 0) {
-      if (rlen2 < 0) {
+    printf("(worker %d) reading %d bytesfrom socket... \n", casgi.mywid, AGI_READ_CHUNK);
+    rlen = read(fd, buff + total_bytes_read, AGI_READ_CHUNK);
+    if (rlen <= 0) {
+      if (rlen < 0) {
         printf("read() error\n");
-        free(buff);
+	return -1;
       }
-      break;
+      return -1;
     }
-    total_bytes_read += rlen2;
-
-    printf("read response from asterisk: %s, (%d bytes)\n", buff,
-           total_bytes_read);
-    if (total_bytes_read >= 1 && buff[total_bytes_read - 1] == '\n') {
-      fullpkt = 1;
+    total_bytes_read += rlen;
+    if (total_bytes_read >= 2 && buff[total_bytes_read - 1] == '\n' &&
+        buff[total_bytes_read - 2] == '\n') {
       break;
     }
   }
 
   buff[total_bytes_read] = '\0';
-  printf("Total bytes read: %d\n", total_bytes_read);
+  printf("(worker %d) total bytes read: %d\n", casgi.mywid, total_bytes_read);
   return total_bytes_read;
+}
+
+int get_asgi_line(int fd, char *buff) {
+  int rlen, total_bytes_read = 0;
+  while (total_bytes_read < 1024) {
+    printf("(worker %d) [agi] reading %d bytes from fd=%d.. \n", casgi.mywid, AGI_READ_CHUNK, fd);
+    rlen = read(fd, buff + total_bytes_read, AGI_READ_CHUNK);
+    if (rlen <= 0) {
+      if (rlen < 0) {
+        perror("[agi] read() error\n");
+	return -1;
+      }
+      return -1;
+    }
+    total_bytes_read += rlen;
+    if (total_bytes_read >= 1 && buff[total_bytes_read - 1] == '\n'){
+      break;
+    }
+  }
+
+  buff[total_bytes_read] = '\0';
+  printf("(worker %d) [agi] total bytes read: %d\n", casgi.mywid, total_bytes_read);
+  return total_bytes_read;
+}
+
+
+int send_asgi_line(int fd, char *buff) {
+  int rlen, total_bytes_sent = 0;
+  while (total_bytes_sent < strlen(buff)) {
+    printf("(worker %d) [agi] writing %lu bytes to fd=%d.. \n", casgi.mywid, strlen(buff), fd);
+    rlen = write(fd, buff, strlen(buff));
+    if (rlen <= 0) {
+      if (rlen < 0) {
+        perror("[agi] write() error\n");
+	return -1;
+      }
+      return -1;
+    }
+    total_bytes_sent += rlen;
+  }
+
+  buff[total_bytes_sent] = '\0';
+  printf("(worker %d) [agi] total bytes sent: %d\n", casgi.mywid, total_bytes_sent);
+  return total_bytes_sent;
 }
 
 int wsgi_req_recv(struct asgi_request *wsgi_req) {
@@ -171,5 +212,85 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
   // &agi_header);
   python_request_handler(casgi.workers[casgi.mywid].app, &agi_header);
   free(wsgi_req->buffer);
+  return 0;
+}
+
+void *handle_request_thread(void *arg) {
+    worker_data_t *data = (worker_data_t *)arg;
+
+    int fd = data->client_fd;
+  printf("(worker %d) handing request\n", casgi.mywid);
+  while(1) {
+      char *buffer = malloc(casgi.buffer_size);
+      if (!buffer) {
+        printf("malloc() wsgi_req\n");
+        exit(1);
+      }
+      // memset(wsgi_req->buffer, 0, casgi.buffer_size);
+      if (!get_asgi_response(fd, buffer)) {
+        free(buffer);
+        // return -1;
+      }
+      printf("buff=%s\n", buffer);
+      if(strstr(buffer, "HANGUP") != NULL) {
+        printf("Hanging up the call.\n");
+        break;
+      }
+      printf("(worker %d) got response: %s\n", casgi.mywid, buffer);
+
+      struct agi_header agi_header;
+      // memset(&agi_header, 0, sizeof(struct agi_header));
+      agi_header.env = malloc(sizeof(struct agi_pair) * 30);
+      if (!agi_header.env) {
+        printf("malloc() agi_header\n");
+        free(buffer);
+        exit(1);
+      }
+      parse_agi_data(buffer, &agi_header);
+      python_request_handler_v2(&agi_header);
+      free(buffer);
+      printf("handing next call \n");
+      sleep(1);
+  }
+  // return 0;
+}
+
+int handle_request_main(int fd) {
+  printf("(worker %d) handing request\n", casgi.mywid);
+  char *buffer = malloc(casgi.buffer_size);
+  if (!buffer) {
+    printf("malloc() wsgi_req\n");
+    exit(1);
+  }
+  // memset(wsgi_req->buffer, 0, casgi.buffer_size);
+  if (!get_asgi_response(fd, buffer)) {
+    free(buffer);
+    return -1;
+  }
+  printf("(worker %d) got response: %s\n", casgi.mywid, buffer);
+
+  struct agi_header agi_header;
+  // memset(&agi_header, 0, sizeof(struct agi_header));
+  agi_header.env = malloc(sizeof(struct agi_pair) * 30);
+  if (!agi_header.env) {
+    printf("malloc() agi_header\n");
+    free(buffer);
+    exit(1);
+  }
+  parse_agi_data(buffer, &agi_header);
+  python_request_handler(casgi.workers[casgi.mywid].app, &agi_header);
+  free(buffer);
+  return 0;
+}
+
+int handle_request(int fd) {
+  worker_data_t *data = malloc(sizeof(worker_data_t));
+  data->client_fd = fd;
+
+  pthread_t worker_thread;
+  pthread_create(&worker_thread, NULL, handle_request_thread, (void *)data);
+
+  // Detach the thread to automatically free resources when done
+  pthread_detach(worker_thread);
   return 0;
 }
