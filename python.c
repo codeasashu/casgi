@@ -5,6 +5,36 @@
 extern struct casgi_server casgi;
 extern volatile int terminate_thread;
 
+PyThreadState *init_py_app() {
+  PyThreadState *interpreter = Py_NewInterpreter();
+  if (!interpreter) {
+    printf("unable to initialize the new interpreter\n");
+    exit(1);
+  }
+  return interpreter;
+}
+
+PyThreadState *init_py_app_b() {
+  PyThreadState *mainState = PyInterpreterState_Main();
+
+  PyInterpreterConfig config = {
+      .use_main_obmalloc = 0,
+      .allow_fork = 0,
+      .allow_exec = 0,
+      .allow_threads = 1,
+      .allow_daemon_threads = 0,
+      .check_multi_interp_extensions = 1,
+      .gil = PyInterpreterConfig_OWN_GIL,
+  };
+  PyThreadState *interpreter = Py_NewInterpreterFromConfig(&config);
+  // PyThreadState *interpreter = Py_NewInterpreter();
+  if (!interpreter) {
+    printf("unable to initialize the new interpreter\n");
+    exit(1);
+  }
+  return interpreter;
+}
+
 PyObject *get_casgi_pydict(char *module) {
 
   PyObject *wsgi_module, *wsgi_dict;
@@ -368,10 +398,45 @@ int python_request_handler(struct casgi_app *app,
   return 0;
 }
 
+PyObject *load_callable(PyThreadState *interpreter) {
+  PyObject *asgi_file_callable;
+
+  PyThreadState_Swap(interpreter);
+  set_dyn_pyhome(&casgi);
+  printf("(worker %d) init paths %s... \n", casgi.mywid,
+         casgi.config->app_path);
+  init_paths(casgi.config->app_path);
+
+  printf("(worker %d) importing module %s... \n", casgi.mywid,
+         casgi.config->module);
+  PyObject *pName = PyUnicode_DecodeFSDefault(casgi.config->module);
+  PyObject *pModule = PyImport_ImportModule(casgi.config->module);
+  printf("(worker %d) imported module %s !! \n", casgi.mywid,
+         casgi.config->module);
+  Py_DECREF(pName);
+  if (!pModule) {
+    PyErr_Print();
+    exit(1);
+  }
+  printf("(worker %d) finding callable 'application'... \n", casgi.mywid);
+  asgi_file_callable = PyObject_GetAttrString(pModule, "application");
+  if (!asgi_file_callable) {
+    PyErr_Print();
+    printf("unable to find \"application\" callable in wsgi file %s (%s)\n",
+           casgi.config->app_path, casgi.config->module);
+    exit(1);
+  }
+  printf("(worker %d) found callable 'application'... \n", casgi.mywid);
+  Py_DECREF(pModule);
+  return asgi_file_callable;
+}
+
 int python_request_handler_v2(struct agi_header *agi_header) {
   PyObject *callable, *asgi_fputs;
 
-  callable = init_py();
+  worker = casgi.workers[casgi.mywid].app;
+  PyThreadState *interpreter = init_py_app();
+  callable = load_callable(interpreter);
   static PyMethodDef FputsMethods[] = {
       {"fputs", method_fputs, METH_VARARGS, ""}, {NULL, NULL, 0, NULL}};
   asgi_fputs = PyCFunction_New(FputsMethods, NULL);
