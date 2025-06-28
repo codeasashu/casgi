@@ -1,0 +1,648 @@
+From 9a2619ec7c76c4d7bc835dcd5b21bdfbeb328720 Mon Sep 17 00:00:00 2001
+From: root <root@ip-10-0-1-213.ap-south-1.compute.internal>
+Date: Thu, 29 Aug 2024 21:47:51 +0000
+Subject: [PATCH 1/1] init epoll impl
+
+---
+ asgi.h   |  13 +++++
+ main.c   |  87 ++++++++++++++++++++++++----
+ python.c | 168 +++++++++++++++++++++++++++++++++++++++++++++++--------
+ socket.c | 152 ++++++++++++++++++++++++++++++++++++++++++++-----
+ 4 files changed, 371 insertions(+), 49 deletions(-)
+
+diff --git a/asgi.h b/asgi.h
+index 394aaee..6eb971b 100644
+--- a/asgi.h
++++ b/asgi.h
+@@ -12,6 +12,8 @@
+ #include <arpa/inet.h>
+ #include <netinet/in.h>
+ #include <netinet/tcp.h>
++#include <fcntl.h>
++#include <sys/epoll.h>
+ #include <poll.h>
+ #include <signal.h>
+ #include <stdio.h>
+@@ -29,6 +31,7 @@ struct casgi_server {
+   pid_t pid;
+   char *pyhome;
+   int serverfd;
++  int epollfd;
+   int mywid;
+   int buffer_size;
+   struct asgi_config *config;
+@@ -60,6 +63,7 @@ struct asgi_request {
+   int app_id;
+ 
+   struct pollfd poll;
++  int epoll_fd;
+ 
+   // Client info
+   struct sockaddr_in c_addr;
+@@ -73,6 +77,10 @@ struct asgi_request {
+ 
+ struct asgi_request *current_asgi_req(struct casgi_server *);
+ 
++typedef struct {
++    int client_fd;
++} worker_data_t;
++
+ asgi_config *read_config(const char *filename);
+ 
+ void init_paths(const char *mypath);
+@@ -82,6 +90,7 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
+ 
+ PyObject *python_call(PyObject *callable, PyObject *args);
+ 
++int set_nonblocking(int);
+ void warn_pipe(void);
+ void goodbye_cruel_world(void);
+ void gracefully_kill(void);
+@@ -95,5 +104,9 @@ int wsgi_req_accept(int, struct asgi_request *);
+ int wsgi_req_recv(struct asgi_request *);
+ int python_call_asgi(PyObject *, struct agi_header *);
+ int python_request_handler(struct casgi_app *, struct agi_header *);
++int python_request_handler_v2(struct agi_header *);
+ int casgi_get_response_line(struct pollfd *, char *);
++int handle_request(int);
++int get_asgi_line(int fd, char *buff);
++int send_asgi_line(int fd, char *buff);
+ PyObject *method_fputs(PyObject *, PyObject *);
+diff --git a/main.c b/main.c
+index 4221517..6f698b7 100644
+--- a/main.c
++++ b/main.c
+@@ -64,6 +64,8 @@ void reap_them_all() {
+ }
+ 
+ int main(int argc, char *argv[]) {
++  int epoll_fd;
++  struct epoll_event ev, events[10];
+   pid_t pid, masterpid;
+   char *tcp_port;
+ 
+@@ -106,14 +108,39 @@ int main(int argc, char *argv[]) {
+     casgi.serverfd = bind_to_tcp(64, tcp_port);
+   }
+   printf("\t master listening on tcp port=%s\n", tcp_port);
++  
++  epoll_fd = epoll_create1(0);
++  if (epoll_fd == -1) {
++      perror("epoll_create1");
++      close(casgi.serverfd);
++      exit(EXIT_FAILURE);
++  }
++  
++  ev.events = EPOLLIN;
++  ev.data.fd = casgi.serverfd;
++  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, casgi.serverfd, &ev) == -1) {
++      perror("epoll_ctl: listener_fd");
++      close(casgi.serverfd);
++      exit(1);
++  }
+ 
+-  for (int i = 0; i < 2; i++) {
++  casgi.epollfd = epoll_fd;
++
++  if (!Py_IsInitialized()) {
++        Py_Initialize();
++
++        // Initialize thread support (required for multi-threading with Python)
++        PyEval_InitThreads();  // This will acquire the GIL initially
++        PyEval_SaveThread();   // Release the GIL and allow other threads to run
++  }
++
++  for (int i = 0; i < 1; i++) {
+     pid = fork();
+     if (pid == 0) {
+       casgi.workers[i].pid = getpid();
+       casgi.workers[i].id = i;
+       casgi.workers[i].manage_next_request = 1;
+-      casgi.workers[i].app = uwsgi_wsgi_file_config(&casgi, i);
++      // casgi.workers[i].app = uwsgi_wsgi_file_config(&casgi, i);
+       casgi.mywid = i;
+       printf("worker%d (pid: %d) booted\n", i, casgi.workers[i].pid);
+       break;
+@@ -157,20 +184,56 @@ int main(int argc, char *argv[]) {
+   // }
+   while (casgi.workers[casgi.mywid].manage_next_request) {
+     // wsgi_req_setup(uwsgi.wsgi_req, 0);
+-
+-    if (wsgi_req_accept(casgi.serverfd, casgi.wsgi_req)) {
+-      sleep(1);
+-      continue;
+-    }
+-
+-    if (wsgi_req_recv(casgi.wsgi_req)) {
+-      sleep(1);
+-      continue;
+-    }
++        printf("(worker %d): before epoll_wait on fd=%d\n", casgi.mywid, casgi.epollfd);
++        int n = epoll_wait(casgi.epollfd, events, 10, -1);
++        if (n == -1) {
++            perror("epoll_wait");
++            close(casgi.serverfd);
++            exit(1);
++        }
++        printf("(worker %d): after epoll_wait on fd=%d\n", casgi.mywid, casgi.epollfd);
++
++        for (int i = 0; i < n; i++) {
++	    if (events[i].data.fd == casgi.serverfd) {
++                printf("(worker %d): event matched on fd=%d\n", casgi.mywid, casgi.serverfd);
++		int client_fd = accept(casgi.serverfd, NULL, NULL);
++		if (client_fd == -1) {
++                    perror("accept");
++                    printf("(worker %d) accept\n", casgi.mywid);
++                } else {
++		    set_nonblocking(client_fd);
++                    ev.events = EPOLLIN | EPOLLET; // Use Edge-Triggered (ET) mode for non-blocking
++                    ev.data.fd = client_fd;
++                    if (epoll_ctl(casgi.epollfd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
++                        perror("epoll_ctl: client_fd");
++                        close(client_fd);
++                    }
++                    printf("(worker %d) accepted new client on fd=%d\n", casgi.mywid, client_fd);
++		    casgi.wsgi_req->epoll_fd = client_fd;
++		    handle_request(client_fd);
++		}
++             } else {
++		printf("(worker %d) handing the client. clientfd=%d\n", casgi.mywid, events[i].data.fd);
++		// handle_request(casgi.wsgi_req->epoll_fd);
++	    }
++	}
++        printf("(worker %d) moving to next while loop\n", casgi.mywid);
++        sleep(1);
++
++    // if (wsgi_req_accept(casgi.serverfd, casgi.wsgi_req)) {
++    //   sleep(1);
++    //   continue;
++    // }
++
++    // if (wsgi_req_recv(casgi.wsgi_req)) {
++    //   sleep(1);
++    //   continue;
++    // }
+     // uwsgi_close_request(&uwsgi, uwsgi.wsgi_req);
+   }
+ 
+   free(casgi.workers);
++  Py_Finalize();
+   //
+   // Initialize the Python interpreter
+   return 0;
+diff --git a/python.c b/python.c
+index fa5af26..7c612be 100644
+--- a/python.c
++++ b/python.c
+@@ -8,12 +8,15 @@ PyObject *get_casgi_pydict(char *module) {
+ 
+   PyObject *wsgi_module, *wsgi_dict;
+ 
++  printf("(worker %d) importing module %s ... \n", casgi.mywid, module);
+   wsgi_module = PyImport_ImportModule(module);
+   if (!wsgi_module) {
++    printf("(worker %d) unable to import module %s ... \n", casgi.mywid, module);
+     PyErr_Print();
+     return NULL;
+   }
+ 
++  printf("(worker %d) getting module dict %s ... \n", casgi.mywid, module);
+   wsgi_dict = PyModule_GetDict(wsgi_module);
+   if (!wsgi_dict) {
+     PyErr_Print();
+@@ -24,17 +27,20 @@ PyObject *get_casgi_pydict(char *module) {
+ }
+ 
+ void set_dyn_pyhome(struct casgi_server *casgi) {
++  printf("setting virtualenv... (app=%d)... \n", casgi->mywid);
+   char venv_version[30];
+   PyObject *site_module;
+ 
+   PyObject *pysys_dict = get_casgi_pydict("sys");
+ 
++  printf("finding paths... (app=%d)... \n", casgi->mywid);
+   PyObject *pypath = PyDict_GetItemString(pysys_dict, "path");
+   if (!pypath) {
+     PyErr_Print();
+     exit(1);
+   }
+ 
++  printf("inserting app_path paths... (app=%d)... \n", casgi->mywid);
+   if (PyList_Insert(pypath, 0, PyUnicode_FromString(casgi->config->app_path))) {
+     PyErr_Print();
+   }
+@@ -70,8 +76,14 @@ void set_dyn_pyhome(struct casgi_server *casgi) {
+ }
+ 
+ PyObject *method_fputs(PyObject *self, PyObject *args) {
+-  char *buff;
+-  buff = malloc(casgi.buffer_size);
++  struct epoll_event event;
++  int n;
++  int epoll_fd = casgi.epollfd;
++  char *buff = malloc(casgi.buffer_size);
++  if (!buff) {
++    printf("malloc() method_fputs\n");
++    exit(1);
++  }
+ 
+   struct asgi_request *asgi_req = current_asgi_req(&casgi);
+ 
+@@ -79,20 +91,56 @@ PyObject *method_fputs(PyObject *self, PyObject *args) {
+ 
+   /* Parse arguments */
+   if (!PyArg_ParseTuple(args, "s", &str)) {
++    PyErr_SetString(PyExc_RuntimeError, "Unable to parse args");
+     return NULL;
+   }
+ 
+-  printf("received cmd=%s (pid=%d), app_id=%d \n", str, getpid(),
+-         asgi_req->app_id);
+-  write(asgi_req->poll.fd, str, strlen(str));
+-  printf("written cmd=%s (pid=%d), app_id=%d \n", str, getpid(),
+-         asgi_req->app_id);
+-
+-  int bytes_read = casgi_get_response_line(&asgi_req->poll, buff);
+-  char *ast_resp = strndup(buff, bytes_read);
+-  free(buff);
+-  ast_resp[bytes_read] = '\0';
+-  return PyUnicode_FromString(ast_resp);
++  printf("(worker %d) received cmd=%s, fd=%d \n", casgi.mywid, str, asgi_req->epoll_fd);
++  event.events = EPOLLOUT;
++  // event.data.fd = asgi_req->epoll_fd;
++  if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, asgi_req->epoll_fd, &event) == -1) {
++    perror("Failed to add client_fd to epoll");
++    PyErr_SetString(PyExc_RuntimeError, "Error in epoll_wait for reading");
++    return NULL;
++  }
++  n = epoll_wait(epoll_fd, &event, 1, -1);
++  if (n == -1) {
++    perror("epoll_wait()");
++    PyErr_SetString(PyExc_RuntimeError, "Error in epoll_wait for writing");
++    return NULL;
++  }
++  if (event.events & EPOLLOUT) {
++      int written = send_asgi_line(asgi_req->epoll_fd, str);
++      if(written <= 0){
++        printf("(worker %d) write error\n", casgi.mywid);
++        exit(1);
++      }
++      printf("(worker %d) written bytes=%d, fd=%d ", casgi.mywid, written, asgi_req->epoll_fd);
++  }
++  printf("reading asterisk response...\n");
++  //int written = write(asgi_req->epoll_fd, str, strlen(str));
++  event.events = EPOLLIN;
++  if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, asgi_req->epoll_fd, &event) == -1) {
++        perror("Failed to modify client_fd to EPOLLIN");
++        return NULL;
++  }
++  printf("waiting for socket to be available...\n");
++  n = epoll_wait(epoll_fd, &event, 1, -1);
++  if (n == -1) {
++    perror("epoll_wait()");
++    printf("epoll_wait() error during read\n");
++    PyErr_SetString(PyExc_RuntimeError, "Error in epoll_wait for reading");
++    return NULL;
++  }
++  if (event.events & EPOLLIN) {
++      int bytes_read = get_asgi_line(asgi_req->epoll_fd, buff);
++      printf("(worker %d) [agi] buff=%s\n", casgi.mywid, buff);
++      char *ast_resp = strndup(buff, bytes_read);
++      free(buff);
++      ast_resp[bytes_read] = '\0';
++      return PyUnicode_FromString(ast_resp);
++  }
++  return PyUnicode_FromString("");
+ }
+ 
+ void init_paths(const char *mypath) {
+@@ -167,13 +215,13 @@ struct casgi_app *init_casgi_app(PyObject *my_callable) {
+   app = malloc(sizeof(struct casgi_app));
+   memset(app, 0, sizeof(struct casgi_app));
+ 
+-  Py_Initialize();
+-  app->interpreter = Py_NewInterpreter();
+-  if (!app->interpreter) {
+-    printf("unable to initialize the new interpreter\n");
+-    exit(1);
+-  }
+-  PyThreadState_Swap(app->interpreter);
++  // Py_Initialize();
++  // app->interpreter = Py_NewInterpreter();
++  // if (!app->interpreter) {
++  //  printf("unable to initialize the new interpreter\n");
++  //  exit(1);
++  // }
++  // PyThreadState_Swap(app->interpreter);
+   static PyMethodDef FputsMethods[] = {
+       {"fputs", method_fputs, METH_VARARGS, ""}, {NULL, NULL, 0, NULL}};
+ 
+@@ -192,7 +240,6 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
+                                          int workerid) {
+   struct casgi_app *app = malloc(sizeof(struct casgi_app));
+   memset(app, 0, sizeof(struct casgi_app));
+-  printf("initializing python module (app=%d)... \n", casgi->mywid);
+   PyObject *asgi_file_callable;
+ 
+   Py_Initialize();
+@@ -200,7 +247,6 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
+   set_dyn_pyhome(casgi);
+   init_paths(casgi->config->app_path);
+ 
+-  printf("initializing python module: %s\n", casgi->config->module);
+   // Load the module object
+   PyObject *pName = PyUnicode_DecodeFSDefault(casgi->config->module);
+   PyObject *pModule = PyImport_Import(pName);
+@@ -224,6 +270,49 @@ struct casgi_app *uwsgi_wsgi_file_config(struct casgi_server *casgi,
+   // Py_Finalize();
+ }
+ 
++
++PyObject *init_py() {
++  PyObject *asgi_file_callable;
++
++  if (!Py_IsInitialized()) {
++    printf("python not initialised. initing... (app=%d)... \n", casgi.mywid);
++    Py_Initialize();
++  }
++  printf("initialized python module (app=%d)... \n", casgi.mywid);
++  PyGILState_STATE gstate = PyGILState_Ensure();
++  printf("get GIL (app=%d)... \n", casgi.mywid);
++
++  set_dyn_pyhome(&casgi);
++  printf("(worker %d) init paths %s... \n", casgi.mywid, casgi.config->app_path);
++  init_paths(casgi.config->app_path);
++
++  printf("(worker %d) importing module %s... \n", casgi.mywid, casgi.config->module);
++  // Load the module object
++  PyObject *pName = PyUnicode_DecodeFSDefault(casgi.config->module);
++  PyObject *pModule = PyImport_ImportModule(casgi.config->module);
++  printf("(worker %d) imported module %s !! \n", casgi.mywid, casgi.config->module);
++  Py_DECREF(pName);
++  if (!pModule) {
++    PyErr_Print();
++    exit(1);
++     PyGILState_Release(gstate);
++  }
++  printf("(worker %d) finding callable 'application'... \n", casgi.mywid);
++  // Get the class from the module
++  asgi_file_callable = PyObject_GetAttrString(pModule, "application");
++  if (!asgi_file_callable) {
++    PyErr_Print();
++    printf("unable to find \"application\" callable in wsgi file %s (%s)\n",
++           casgi.config->app_path, casgi.config->module);
++    exit(1);
++  }
++  printf("(worker %d) found callable 'application'... \n", casgi.mywid);
++  Py_DECREF(pModule);
++
++  // PyGILState_Release(gstate);
++  return asgi_file_callable;
++}
++
+ int python_call_asgi(PyObject *callable, struct agi_header *agi_header) {
+   PyObject *py_dict = PyDict_New();
+ 
+@@ -248,6 +337,7 @@ int python_request_handler(struct casgi_app *app,
+   set_dyn_pyhome(&casgi);
+   PyObject *py_dict = PyDict_New();
+ 
++  printf("going to python\n");
+   // Loop through each agi_pair and add it to the dictionary
+   for (int i = 0; i < agi_header->env_lines; i++) {
+     PyObject *py_value = PyUnicode_FromString(agi_header->env[i].value);
+@@ -255,8 +345,42 @@ int python_request_handler(struct casgi_app *app,
+     Py_DECREF(py_value);
+   }
+ 
++  printf("really going to python, tuplepack\n");
+   PyObject *args = PyTuple_Pack(2, py_dict, app->asgi_fputs);
++  printf("before python_call \n");
++  python_call(callable, args);
++  printf("after python_call \n");
++  Py_DECREF(py_dict);
++  Py_DECREF(args);
++  return 0;
++}
++
++
++int python_request_handler_v2(struct agi_header *agi_header) {
++  PyObject *callable, *asgi_fputs;
++
++  callable = init_py();
++  static PyMethodDef FputsMethods[] = {
++      {"fputs", method_fputs, METH_VARARGS, ""}, {NULL, NULL, 0, NULL}};
++  asgi_fputs = PyCFunction_New(FputsMethods, NULL);
++
++  char python_cmd[300];
++  // set_dyn_pyhome(&casgi);
++  PyObject *py_dict = PyDict_New();
++
++  printf("going to python\n");
++  // Loop through each agi_pair and add it to the dictionary
++  for (int i = 0; i < agi_header->env_lines; i++) {
++    PyObject *py_value = PyUnicode_FromString(agi_header->env[i].value);
++    PyDict_SetItemString(py_dict, agi_header->env[i].key, py_value);
++    Py_DECREF(py_value);
++  }
++
++  printf("really going to python, tuplepack\n");
++  PyObject *args = PyTuple_Pack(2, py_dict, asgi_fputs);
++  printf("before python_call \n");
+   python_call(callable, args);
++  printf("after python_call \n");
+   Py_DECREF(py_dict);
+   Py_DECREF(args);
+   return 0;
+diff --git a/socket.c b/socket.c
+index 07d7ce3..324ff8c 100644
+--- a/socket.c
++++ b/socket.c
+@@ -37,6 +37,8 @@ int bind_to_tcp(int listen_queue, char *tcp_port) {
+     exit(1);
+   }
+ 
++  set_nonblocking(serverfd);
++
+   if (bind(serverfd, res->ai_addr, res->ai_addrlen) != 0) {
+     printf("bind()");
+     exit(1);
+@@ -111,36 +113,75 @@ int casgi_parse_response(struct pollfd *upoll, int timeout, char *buff) {
+   return total_bytes_read;
+ }
+ 
+-int casgi_get_response_line(struct pollfd *upoll, char *buff) {
+-  int rlen, rlen2, total_bytes_read = 0;
+-
+-  int fullpkt = 0;
+ 
++int get_asgi_response(int fd, char *buff) {
++  int rlen, total_bytes_read = 0;
+   while (total_bytes_read < 1024) {
+-    printf("gona read response from asterisk\n");
+-    rlen2 = read(upoll->fd, buff + total_bytes_read, AGI_READ_CHUNK);
+-    if (rlen2 <= 0) {
+-      if (rlen2 < 0) {
++    printf("(worker %d) reading %d bytesfrom socket... \n", casgi.mywid, AGI_READ_CHUNK);
++    rlen = read(fd, buff + total_bytes_read, AGI_READ_CHUNK);
++    if (rlen <= 0) {
++      if (rlen < 0) {
+         printf("read() error\n");
+-        free(buff);
++	return -1;
+       }
++      return -1;
++    }
++    total_bytes_read += rlen;
++    if (total_bytes_read >= 2 && buff[total_bytes_read - 1] == '\n' &&
++        buff[total_bytes_read - 2] == '\n') {
+       break;
+     }
+-    total_bytes_read += rlen2;
++  }
++
++  buff[total_bytes_read] = '\0';
++  printf("(worker %d) total bytes read: %d\n", casgi.mywid, total_bytes_read);
++  return total_bytes_read;
++}
+ 
+-    printf("read response from asterisk: %s, (%d bytes)\n", buff,
+-           total_bytes_read);
+-    if (total_bytes_read >= 1 && buff[total_bytes_read - 1] == '\n') {
+-      fullpkt = 1;
++int get_asgi_line(int fd, char *buff) {
++  int rlen, total_bytes_read = 0;
++  while (total_bytes_read < 1024) {
++    printf("(worker %d) [agi] reading %d bytes from fd=%d.. \n", casgi.mywid, AGI_READ_CHUNK, fd);
++    rlen = read(fd, buff + total_bytes_read, AGI_READ_CHUNK);
++    if (rlen <= 0) {
++      if (rlen < 0) {
++        perror("[agi] read() error\n");
++	return -1;
++      }
++      return -1;
++    }
++    total_bytes_read += rlen;
++    if (total_bytes_read >= 1 && buff[total_bytes_read - 1] == '\n'){
+       break;
+     }
+   }
+ 
+   buff[total_bytes_read] = '\0';
+-  printf("Total bytes read: %d\n", total_bytes_read);
++  printf("(worker %d) [agi] total bytes read: %d\n", casgi.mywid, total_bytes_read);
+   return total_bytes_read;
+ }
+ 
++
++int send_asgi_line(int fd, char *buff) {
++  int rlen, total_bytes_sent = 0;
++  while (total_bytes_sent < strlen(buff)) {
++    printf("(worker %d) [agi] writing %lu bytes to fd=%d.. \n", casgi.mywid, strlen(buff), fd);
++    rlen = write(fd, buff, strlen(buff));
++    if (rlen <= 0) {
++      if (rlen < 0) {
++        perror("[agi] write() error\n");
++	return -1;
++      }
++      return -1;
++    }
++    total_bytes_sent += rlen;
++  }
++
++  buff[total_bytes_sent] = '\0';
++  printf("(worker %d) [agi] total bytes sent: %d\n", casgi.mywid, total_bytes_sent);
++  return total_bytes_sent;
++}
++
+ int wsgi_req_recv(struct asgi_request *wsgi_req) {
+   printf("received request in worker: %d\n", casgi.mywid);
+   wsgi_req->poll.events = POLLIN;
+@@ -173,3 +214,84 @@ int wsgi_req_recv(struct asgi_request *wsgi_req) {
+   free(wsgi_req->buffer);
+   return 0;
+ }
++
++void *handle_request_thread(void *arg) {
++    worker_data_t *data = (worker_data_t *)arg;
++
++    int fd = data->client_fd;
++  printf("(worker %d) handing request\n", casgi.mywid);
++  while(1) {
++      char *buffer = malloc(casgi.buffer_size);
++      if (!buffer) {
++        printf("malloc() wsgi_req\n");
++        exit(1);
++      }
++      // memset(wsgi_req->buffer, 0, casgi.buffer_size);
++      if (!get_asgi_response(fd, buffer)) {
++        free(buffer);
++        // return -1;
++      }
++      printf("buff=%s\n", buffer);
++      if(strstr(buffer, "HANGUP") != NULL) {
++        printf("Hanging up the call.\n");
++        break;
++      }
++      printf("(worker %d) got response: %s\n", casgi.mywid, buffer);
++
++      struct agi_header agi_header;
++      // memset(&agi_header, 0, sizeof(struct agi_header));
++      agi_header.env = malloc(sizeof(struct agi_pair) * 30);
++      if (!agi_header.env) {
++        printf("malloc() agi_header\n");
++        free(buffer);
++        exit(1);
++      }
++      parse_agi_data(buffer, &agi_header);
++      python_request_handler_v2(&agi_header);
++      free(buffer);
++      printf("handing next call \n");
++      sleep(1);
++  }
++  // return 0;
++}
++
++int handle_request_main(int fd) {
++  printf("(worker %d) handing request\n", casgi.mywid);
++  char *buffer = malloc(casgi.buffer_size);
++  if (!buffer) {
++    printf("malloc() wsgi_req\n");
++    exit(1);
++  }
++  // memset(wsgi_req->buffer, 0, casgi.buffer_size);
++  if (!get_asgi_response(fd, buffer)) {
++    free(buffer);
++    return -1;
++  }
++  printf("(worker %d) got response: %s\n", casgi.mywid, buffer);
++
++  struct agi_header agi_header;
++  // memset(&agi_header, 0, sizeof(struct agi_header));
++  agi_header.env = malloc(sizeof(struct agi_pair) * 30);
++  if (!agi_header.env) {
++    printf("malloc() agi_header\n");
++    free(buffer);
++    exit(1);
++  }
++  parse_agi_data(buffer, &agi_header);
++  python_request_handler(casgi.workers[casgi.mywid].app, &agi_header);
++  free(buffer);
++  return 0;
++}
++
++int handle_request(int fd) {
++  worker_data_t *data = malloc(sizeof(worker_data_t));
++  data->client_fd = fd;
++
++  pthread_t worker_thread;
++  pthread_create(&worker_thread, NULL, handle_request_thread, (void *)data);
++
++  // Detach the thread to automatically free resources when done
++  pthread_detach(worker_thread);
++  return 0;
++}
++
+-- 
+2.43.0
+

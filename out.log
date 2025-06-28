@@ -1,0 +1,338 @@
+PYHOME: /home/ubuntu/engine/venv.
+PYHOME2: /home/ubuntu/engine/venv.
+master (pid: 189421) ready. booting workers...
+tcp port got here: 4573
+listening 1...
+master accepting connections on serverfd=3
+	 master listening on tcp port=4573
+worker0 (pid: 189422) booted
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0): event matched on fd=3
+(worker 0) accepted new client on fd=5
+(worker 0) creating thread (num=1, fd=5)...
+(worker 0) created thread (num=1, fd=5)...
+(worker 0) moving to next while loop
+(t=189423, num=1) getting fd2=5
+(worker 0, tid=189423) reading 256 bytes from fd 5 ... 
+(worker 0, tid=189423) reading 256 bytes from fd 5 ... 
+(worker 0, tid=189423) total bytes read: 507
+buff=agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-0000007c
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1725003973.124
+agi_version: 18.3.0
+agi_callerid: 08447099686
+agi_calleridname: 08447099686
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode: 
+agi_threadid: 140237470373632
+
+
+initialized python module (app=0)... 
+get GIL (app=0)... 
+setting virtualenv... (app=0)... 
+(worker 0) importing module sys ... 
+(worker 0) getting module dict sys ... 
+finding paths... (app=0)... 
+inserting app_path paths... (app=0)... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+(worker 0) init paths /home/ubuntu/engine... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule... 
+(worker 0) imported module mymodule !! 
+(worker 0) finding callable 'application'... 
+(worker 0) found callable 'application'... 
+(worker 0, tid=189423) python_call
+(worker 0, tid=189423) received cmd=GET VARIABLE "LAST_UID"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 24 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 24
+(worker 0, tid=189423) written bytes=24, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__CALL_KIND" "fixdid"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 36 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 36
+(worker 0, tid=189423) written bytes=36, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__AGI_DNID" "69659555"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 37 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 37
+(worker 0, tid=189423) written bytes=37, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 35 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 35
+(worker 0, tid=189423) written bytes=35, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__LAST_UID" "dev1.1725003973.124"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 48 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 48
+(worker 0, tid=189423) written bytes=48, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__TRANSFER_CONTEXT" "ashutosh_transfer"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 54 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 54
+(worker 0, tid=189423) written bytes=54, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__LAST_DISP_NUM" "918261830830"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 46 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 46
+(worker 0, tid=189423) written bytes=46, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 35 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 35
+(worker 0, tid=189423) written bytes=35, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 35 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 35
+(worker 0, tid=189423) written bytes=35, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "CHANNEL"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 23 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 23
+(worker 0, tid=189423) written bytes=23, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 41
+(worker 0, tid=189423) [agi] buff=200 result=1 (SIP/aws-sip-tata-0000007c)
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "CHANNEL"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 23 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 23
+(worker 0, tid=189423) written bytes=23, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 41
+(worker 0, tid=189423) [agi] buff=200 result=1 (SIP/aws-sip-tata-0000007c)
+
+(worker 0): before epoll_wait on fd=4
+(worker 0, tid=189423) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 35 bytes to fd=5.. 
+(worker 0): after epoll_wait on fd=4
+(worker 0) skipping...
+(worker 0) moving to next while loop
+(worker 0, tid=189423) [agi] total bytes sent: 35
+(worker 0, tid=189423) written bytes=35, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__ACTIVE_IVR_ID" "614337f8e3ded314_6"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 52 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 52
+(worker 0, tid=189423) written bytes=52, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0, tid=189423) received cmd=ANSWER
+, fd=5 
+(worker 0, tid=189423) [agi] writing 7 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 7
+(worker 0, tid=189423) written bytes=7, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "CHANNEL"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 23 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 23
+(worker 0, tid=189423) written bytes=23, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 41
+(worker 0, tid=189423) [agi] buff=200 result=1 (SIP/aws-sip-tata-0000007c)
+
+(worker 0, tid=189423) received cmd=GET VARIABLE "CHANNEL"
+, fd=5 
+(worker 0, tid=189423) [agi] writing 23 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 23
+(worker 0, tid=189423) written bytes=23, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0, tid=189423) [agi] total bytes read: 41
+(worker 0, tid=189423) [agi] buff=200 result=1 (SIP/aws-sip-tata-0000007c)
+
+(worker 0, tid=189423) received cmd=GET DATA engine/ulaw/5f6a059642a70299 2000 2
+, fd=5 
+(worker 0, tid=189423) [agi] writing 45 bytes to fd=5.. 
+(worker 0, tid=189423) [agi] total bytes sent: 45
+(worker 0, tid=189423) written bytes=45, fd=5 (worker 0, tid=189423) reading asterisk response...
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0): event matched on fd=3
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=5.. 
+(worker 0) accepted new client on fd=10
+(worker 0) creating thread (num=2, fd=10)...
+(worker 0, tid=189423) [agi] buff=À
+(worker 0) created thread (num=2, fd=10)...
+(worker 0) moving to next while loop
+(t=189426, num=2) getting fd2=10
+(worker 0, tid=189426) reading 256 bytes from fd 10 ... 
+(worker 0, tid=189426) reading 256 bytes from fd 10 ... 
+(worker 0, tid=189426) total bytes read: 507
+buff=agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-0000007d
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1725003979.125
+agi_version: 18.3.0
+agi_callerid: 08368782690
+agi_calleridname: 08368782690
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode: 
+agi_threadid: 140239817844480
+
+
+initialized python module (app=0)... 
+get GIL (app=0)... 
+setting virtualenv... (app=0)... 
+(worker 0) importing module sys ... 
+(worker 0) getting module dict sys ... 
+finding paths... (app=0)... 
+inserting app_path paths... (app=0)... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+(worker 0, tid=189423) received cmd=SET VARIABLE "__END_CMSG" "Call was disconnected by the caller"
+, fd=10 
+(worker 0, tid=189423) [agi] writing 64 bytes to fd=10.. 
+(worker 0, tid=189423) [agi] total bytes sent: 64
+(worker 0, tid=189423) written bytes=64, fd=10 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=10.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+(worker 0) init paths /home/ubuntu/engine... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule... 
+(worker 0) imported module mymodule !! 
+(worker 0) finding callable 'application'... 
+(worker 0) found callable 'application'... 
+(worker 0, tid=189426) python_call
+(worker 0, tid=189423) received cmd=HANGUP
+, fd=10 
+(worker 0, tid=189423) [agi] writing 7 bytes to fd=10.. 
+(worker 0, tid=189423) [agi] total bytes sent: 7
+(worker 0, tid=189423) written bytes=7, fd=10 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=10.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=1
+
+handing next call 
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) skipping...
+(worker 0) skipping...
+(worker 0) moving to next while loop
+(worker 0, tid=189423) reading 256 bytes from fd 5 ... 
+(worker 0, tid=189423) reading 256 bytes from fd 5 ... 
+read() error
+buff=200 result= (timeout)
+
+initialized python module (app=0)... 
+get GIL (app=0)... 
+setting virtualenv... (app=0)... 
+(worker 0) importing module sys ... 
+(worker 0) getting module dict sys ... 
+finding paths... (app=0)... 
+inserting app_path paths... (app=0)... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+(worker 0, tid=189426) received cmd=GET VARIABLE "LAST_UID"
+, fd=10 
+(worker 0, tid=189426) [agi] writing 24 bytes to fd=10.. 
+(worker 0, tid=189426) [agi] total bytes sent: 24
+(worker 0, tid=189426) written bytes=24, fd=10 (worker 0, tid=189426) reading asterisk response...
+(worker 0, tid=189426) [agi] reading 256 bytes from fd=10.. 
+(worker 0, tid=189426) [agi] total bytes read: 7
+(worker 0, tid=189426) [agi] buff=HANGUP
+
+(worker 0, tid=189426) Hanging up the call.
+(worker 0) init paths /home/ubuntu/engine... 
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule... 
+(worker 0) imported module mymodule !! 
+(worker 0) finding callable 'application'... 
+(worker 0) found callable 'application'... 
+(worker 0, tid=189423) python_call
+(worker 0, tid=189423) received cmd=GET VARIABLE "LAST_UID"
+, fd=10 
+(worker 0, tid=189423) [agi] writing 24 bytes to fd=10.. 
+(worker 0, tid=189423) [agi] total bytes sent: 24
+(worker 0, tid=189423) written bytes=24, fd=10 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=10.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+
+(worker 0, tid=189423) received cmd=SET VARIABLE "__CALL_KIND" "fixdid"
+, fd=10 
+(worker 0, tid=189423) [agi] writing 36 bytes to fd=10.. 
+(worker 0, tid=189423) [agi] total bytes sent: 36
+(worker 0, tid=189423) written bytes=36, fd=10 (worker 0, tid=189423) reading asterisk response...
+(worker 0, tid=189423) [agi] reading 256 bytes from fd=10.. 
+(worker 0, tid=189423) [agi] total bytes read: 13
+(worker 0, tid=189423) [agi] buff=200 result=0
+

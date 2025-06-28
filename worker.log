@@ -1,0 +1,675 @@
+root@ip-10-0-1-213:/home/ubuntu/casgi# ./output
+PYHOME: /home/ubuntu/engine/venv.
+PYHOME2: /home/ubuntu/engine/venv.
+master (pid: 188354) ready. booting workers...
+tcp port got here: 4573
+listening 1...
+master accepting connections on serverfd=3
+         master listening on tcp port=4573
+spawned uWSGI worker 0 (pid: 188355)
+running in master
+inside master. sleeping every 1 seconds
+worker0 (pid: 188355) booted
+(worker 0): before epoll_wait on fd=4
+inside master. sleeping every 1 seconds
+inside master. sleeping every 1 seconds
+(worker 0): after epoll_wait on fd=4
+(worker 0): event matched on fd=3
+(worker 0) accepted new client on fd=5
+(worker 0) moving to next while loop
+(worker 0) handing request
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) total bytes read: 507
+buff=agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-00000067
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998182.103
+agi_version: 18.3.0
+agi_callerid: 09650577800
+agi_calleridname: 09650577800
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140239817844480
+
+
+(worker 0) got response: agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-00000067
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998182.103
+agi_version: 18.3.0
+agi_callerid: 09650577800
+agi_calleridname: 09650577800
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140239817844480
+
+
+initialized python module (app=0)...
+get GIL (app=0)...
+setting virtualenv... (app=0)...
+(worker 0) importing module sys ...
+(worker 0) getting module dict sys ...
+finding paths... (app=0)...
+inserting app_path paths... (app=0)...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+(worker 0) init paths /home/ubuntu/engine...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule...
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0) imported module mymodule !!
+(worker 0) finding callable 'application'...
+(worker 0) found callable 'application'...
+going to python
+really going to python, tuplepack
+before python_call
+class AGI: self.env = {'agi_accountcode': '',
+ 'agi_callerid': '09650577800',
+ 'agi_calleridname': '09650577800',
+ 'agi_callingani2': '0',
+ 'agi_callingpres': '0',
+ 'agi_callingtns': '0',
+ 'agi_callington': '0',
+ 'agi_channel': 'SIP/aws-sip-tata-00000067',
+ 'agi_context': 'ashutosh',
+ 'agi_dnid': '69659555',
+ 'agi_enhanced': '0.0',
+ 'agi_extension': '69659555',
+ 'agi_language': 'en',
+ 'agi_network': 'yes',
+ 'agi_network_script': 'pick_fixdid',
+ 'agi_priority': '2',
+ 'agi_rdnis': 'unknown',
+ 'agi_request': 'agi://10.0.1.213/pick_fixdid',
+ 'agi_threadid': '140239817844480',
+ 'agi_type': 'SIP',
+ 'agi_uniqueid': '1724998182.103',
+ 'agi_version': '18.3.0'}
+(worker 0) received cmd=GET VARIABLE "LAST_UID"
+, fd=5
+(worker 0) [agi] writing 24 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 24
+(worker 0) written bytes=24, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=SET VARIABLE "__CALL_KIND" "fixdid"
+, fd=5
+(worker 0) [agi] writing 36 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 36
+(worker 0) written bytes=36, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) received cmd=SET VARIABLE "__AGI_DNID" "69659555"
+, fd=5
+(worker 0) [agi] writing 37 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 37
+(worker 0) written bytes=37, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+inside master. sleeping every 1 seconds
+(worker 0) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5
+(worker 0) [agi] writing 35 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 35
+(worker 0) written bytes=35, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=SET VARIABLE "__LAST_UID" "dev1.1724998182.103"
+, fd=5
+(worker 0) [agi] writing 48 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 48
+(worker 0) written bytes=48, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) received cmd=SET VARIABLE "__TRANSFER_CONTEXT" "ashutosh_transfer"
+, fd=5
+(worker 0) [agi] writing 54 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 54
+(worker 0) written bytes=54, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) received cmd=SET VARIABLE "__LAST_DISP_NUM" "918261830830"
+, fd=5
+(worker 0) [agi] writing 46 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 46
+(worker 0) written bytes=46, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5
+(worker 0) [agi] writing 35 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 35
+(worker 0) written bytes=35, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5
+(worker 0) [agi] writing 35 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 35
+(worker 0) written bytes=35, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=GET VARIABLE "CHANNEL"
+, fd=5
+(worker 0) [agi] writing 23 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 23
+(worker 0) written bytes=23, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 41
+(worker 0) [agi] buff=200 result=1 (SIP/aws-sip-tata-00000067)
+
+    RESULT_LINE: 200 result=1 (SIP/aws-sip-tata-00000067)
+    RESULT_DICT: {'result': ('1', 'SIP/aws-sip-tata-00000067')}
+(worker 0) received cmd=GET VARIABLE "CHANNEL"
+, fd=5
+(worker 0) [agi] writing 23 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 23
+(worker 0) written bytes=23, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 41
+(worker 0) [agi] buff=200 result=1 (SIP/aws-sip-tata-00000067)
+
+    RESULT_LINE: 200 result=1 (SIP/aws-sip-tata-00000067)
+    RESULT_DICT: {'result': ('1', 'SIP/aws-sip-tata-00000067')}
+(worker 0) received cmd=GET VARIABLE "IS_WEBCALL_OUTGOING"
+, fd=5
+(worker 0) [agi] writing 35 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 35
+(worker 0) written bytes=35, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=SET VARIABLE "__ACTIVE_IVR_ID" "614337f8e3ded314_6"
+, fd=5
+(worker 0) [agi] writing 52 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 52
+(worker 0) written bytes=52, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) received cmd=ANSWER
+, fd=5
+(worker 0) [agi] writing 7 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 7
+(worker 0) written bytes=7, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=GET VARIABLE "CHANNEL"
+, fd=5
+(worker 0) [agi] writing 23 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 23
+(worker 0) written bytes=23, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 41
+(worker 0) [agi] buff=200 result=1 (SIP/aws-sip-tata-00000067)
+
+    RESULT_LINE: 200 result=1 (SIP/aws-sip-tata-00000067)
+    RESULT_DICT: {'result': ('1', 'SIP/aws-sip-tata-00000067')}
+(worker 0) received cmd=GET VARIABLE "CHANNEL"
+, fd=5
+(worker 0) [agi] writing 23 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 23
+(worker 0) written bytes=23, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) [agi] total bytes read: 41
+(worker 0) [agi] buff=200 result=1 (SIP/aws-sip-tata-00000067)
+
+    RESULT_LINE: 200 result=1 (SIP/aws-sip-tata-00000067)
+    RESULT_DICT: {'result': ('1', 'SIP/aws-sip-tata-00000067')}
+(worker 0) received cmd=GET DATA engine/ulaw/5f6a059642a70299 2000 2
+, fd=5
+(worker 0) [agi] writing 45 bytes to fd=5..
+(worker 0) [agi] total bytes sent: 45
+(worker 0) written bytes=45, fd=5 reading asterisk response...
+waiting for socket to be available...
+(worker 0): before epoll_wait on fd=4
+inside master. sleeping every 1 seconds
+inside master. sleeping every 1 seconds
+inside master. sleeping every 1 seconds
+inside master. sleeping every 1 seconds
+(worker 0): after epoll_wait on fd=4
+(worker 0): event matched on fd=3
+(worker 0) [agi] reading 256 bytes from fd=5..
+(worker 0) accepted new client on fd=10
+[agi] read() error
+: Resource temporarily unavailable
+(worker 0) [agi] buff=
+(worker 0) moving to next while loop
+(worker 0) handing request
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) total bytes read: 507
+buff=agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-00000068
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998188.104
+agi_version: 18.3.0
+agi_callerid: 08368782690
+agi_calleridname: 08368782690
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140237471397632
+
+
+(worker 0) got response: agi_network: yes
+agi_network_script: pick_fixdid
+agi_request: agi://10.0.1.213/pick_fixdid
+agi_channel: SIP/aws-sip-tata-00000068
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998188.104
+agi_version: 18.3.0
+agi_callerid: 08368782690
+agi_calleridname: 08368782690
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: 69659555
+agi_priority: 2
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140237471397632
+
+
+initialized python module (app=0)...
+get GIL (app=0)...
+setting virtualenv... (app=0)...
+(worker 0) importing module sys ...
+(worker 0) getting module dict sys ...
+finding paths... (app=0)...
+inserting app_path paths... (app=0)...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+(worker 0) received cmd=SET VARIABLE "__END_CMSG" "Call was disconnected by the caller"
+, fd=10
+(worker 0) [agi] writing 64 bytes to fd=10..
+(worker 0) [agi] total bytes sent: 64
+(worker 0) written bytes=64, fd=10 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=10..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+(worker 0) init paths /home/ubuntu/engine...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule...
+(worker 0) imported module mymodule !!
+(worker 0) finding callable 'application'...
+(worker 0) found callable 'application'...
+going to python
+really going to python, tuplepack
+before python_call
+(worker 0) received cmd=HANGUP
+, fd=10
+(worker 0) [agi] writing 7 bytes to fd=10..
+(worker 0) [agi] total bytes sent: 7
+(worker 0) written bytes=7, fd=10 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=10..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=1
+
+    RESULT_LINE: 200 result=1
+    RESULT_DICT: {'result': ('1', '')}
+after python_call
+handing next call
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+(worker 0) reading 256 bytesfrom socket...
+read() error
+buff=
+(worker 0) got response:
+initialized python module (app=0)...
+get GIL (app=0)...
+setting virtualenv... (app=0)...
+(worker 0) importing module sys ...
+(worker 0) getting module dict sys ...
+finding paths... (app=0)...
+inserting app_path paths... (app=0)...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+class AGI: self.env = {'agi_accountcode': '',
+ 'agi_callerid': '08368782690',
+ 'agi_calleridname': '08368782690',
+ 'agi_callingani2': '0',
+ 'agi_callingpres': '0',
+ 'agi_callingtns': '0',
+ 'agi_callington': '0',
+ 'agi_channel': 'SIP/aws-sip-tata-00000068',
+ 'agi_context': 'ashutosh',
+ 'agi_dnid': '69659555',
+ 'agi_enhanced': '0.0',
+ 'agi_extension': '69659555',
+ 'agi_language': 'en',
+ 'agi_network': 'yes',
+ 'agi_network_script': 'pick_fixdid',
+ 'agi_priority': '2',
+ 'agi_rdnis': 'unknown',
+ 'agi_request': 'agi://10.0.1.213/pick_fixdid',
+ 'agi_threadid': '140237471397632',
+ 'agi_type': 'SIP',
+ 'agi_uniqueid': '1724998188.104',
+ 'agi_version': '18.3.0'}
+(worker 0) received cmd=GET VARIABLE "LAST_UID"
+, fd=10
+(worker 0) [agi] writing 24 bytes to fd=10..
+(worker 0) [agi] total bytes sent: 24
+(worker 0) written bytes=24, fd=10 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=10..
+(worker 0) [agi] total bytes read: 7
+(worker 0) [agi] buff=HANGUP
+
+Hanging up the call.
+(worker 0) init paths /home/ubuntu/engine...
+setting dynamic virtualenv to /home/ubuntu/engine/venv
+[INFO] adding /home/ubuntu/engine to pythonpath.
+(worker 0) importing module mymodule...
+(worker 0) imported module mymodule !!
+(worker 0) finding callable 'application'...
+(worker 0) found callable 'application'...
+going to python
+really going to python, tuplepack
+before python_call
+class AGI: self.env = {}
+(worker 0) received cmd=GET VARIABLE "LAST_UID"
+, fd=10
+(worker 0) [agi] writing 24 bytes to fd=10..
+(worker 0) [agi] total bytes sent: 24
+(worker 0) written bytes=24, fd=10 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=10..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+(worker 0) received cmd=SET VARIABLE "__CALL_KIND" "fixdid"
+, fd=10
+(worker 0) [agi] writing 36 bytes to fd=10..
+(worker 0) [agi] total bytes sent: 36
+(worker 0) written bytes=36, fd=10 reading asterisk response...
+waiting for socket to be available...
+(worker 0) [agi] reading 256 bytes from fd=10..
+(worker 0) [agi] total bytes read: 13
+(worker 0) [agi] buff=200 result=0
+
+    RESULT_LINE: 200 result=0
+    RESULT_DICT: {'result': ('0', '')}
+Traceback (most recent call last):
+  File "/home/ubuntu/engine/mymodule.py", line 40, in __call__
+Traceback (most recent call last):
+  File "/home/ubuntu/engine/mymodule.py", line 41, in __call__
+    engine = Engine(agi=agi)
+             ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/engine/core/engine/engine.py", line 41, in __init__
+    engine.process("pick_fixdid")
+  File "/home/ubuntu/engine/core/engine/engine.py", line 194, in process
+    self.uid = self.agi.get_variable("LAST_UID") or self.agi.suid
+    self.init_apps(is_fixed_did=True)
+  File "/home/ubuntu/engine/core/engine/engine.py", line 142, in init_apps
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/engine/venv/lib/python3.12/site-packages/asterisk/agi.py", line 597, in get_variable
+    self.agi.set_variable("__AGI_DNID", self.agi.agi_dnid.strip("+"))
+    result = self.execute('GET VARIABLE', self._quote(name))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/engine/venv/lib/python3.12/site-packages/asterisk/agi.py", line 149, in execute
+AttributeError: 'NoneType' object has no attribute 'strip'
+after python_call
+handing next call
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0): event matched on fd=3
+(worker 0) accepted new client on fd=5
+(worker 0) moving to next while loop
+(worker 0) handing request
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) reading 256 bytesfrom socket...
+(worker 0) total bytes read: 504
+buff=agi_network: yes
+agi_network_script: hangup_callee
+agi_request: agi://10.0.1.213/hangup_callee
+agi_channel: SIP/aws-sip-tata-00000067
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998182.103
+agi_version: 18.3.0
+agi_callerid: 09650577800
+agi_calleridname: 09650577800
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: h
+agi_priority: 1
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140239817844480
+
+
+(worker 0) got response: agi_network: yes
+agi_network_script: hangup_callee
+agi_request: agi://10.0.1.213/hangup_callee
+agi_channel: SIP/aws-sip-tata-00000067
+agi_language: en
+agi_type: SIP
+agi_uniqueid: 1724998182.103
+agi_version: 18.3.0
+agi_callerid: 09650577800
+agi_calleridname: 09650577800
+agi_callingpres: 0
+agi_callingani2: 0
+agi_callington: 0
+agi_callingtns: 0
+agi_dnid: 69659555
+agi_rdnis: unknown
+agi_context: ashutosh
+agi_extension: h
+agi_priority: 1
+agi_enhanced: 0.0
+agi_accountcode:
+agi_threadid: 140239817844480
+
+
+initialized python module (app=0)...
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+inside master. sleeping every 1 seconds
+(worker 0): before epoll_wait on fd=4
+(worker 0): after epoll_wait on fd=4
+(worker 0) handing the client. clientfd=1
+(worker 0) moving to next while loop
+^CEnding killing worker 0...
+SIGINT/SIGQUIT received...killing workers...
+Killed

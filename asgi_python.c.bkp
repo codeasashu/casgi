@@ -1,0 +1,178 @@
+#include "asgi.h"
+
+void init_uwsgi_vars() {
+  PyObject *pysys, *pysys_dict, *pypath;
+
+  /* add cwd to pythonpath */
+  pysys = PyImport_ImportModule("sys");
+  if (!pysys) {
+    PyErr_Print();
+    exit(1);
+  }
+  pysys_dict = PyModule_GetDict(pysys);
+  pypath = PyDict_GetItemString(pysys_dict, "path");
+  if (!pypath) {
+    PyErr_Print();
+    exit(1);
+  }
+  if (PyList_Insert(pypath, 0, PyUnicode_FromString(".")) != 0) {
+    PyErr_Print();
+  }
+}
+
+int init_uwsgi_app(PyObject *my_callable) {
+  PyObject *wsgi_module, *wsgi_dict = NULL;
+  char tmpstring[256];
+  int id;
+
+  struct uwsgi_app *wi;
+
+  memset(tmpstring, 0, 256);
+
+  if (my_callable == NULL) {
+    printf("invalid application. skip.\n");
+    return -1;
+  }
+
+  id = uwsgi.wsgi_cnt;
+  wi = &uwsgi.wsgi_apps[id];
+  memset(wi, 0, sizeof(struct uwsgi_app));
+
+  if (uwsgi.single_interpreter == 0) {
+    wi->interpreter = Py_NewInterpreter();
+    if (!wi->interpreter) {
+      printf("unable to initialize the new interpreter\n");
+      exit(1);
+    }
+    PyThreadState_Swap(wi->interpreter);
+    init_uwsgi_vars();
+    printf("interpreter for app %d initialized.\n", id);
+  }
+
+  wi->wsgi_callable = my_callable;
+  Py_INCREF(my_callable);
+
+  memset(tmpstring, 0, 256);
+  memcpy(tmpstring, uwsgi.wsgi_req->wsgi_callable,
+         uwsgi.wsgi_req->wsgi_callable_len);
+  if (my_callable) {
+    wi->wsgi_callable = my_callable;
+    Py_INCREF(my_callable);
+  } else if (wsgi_dict) {
+    wi->wsgi_callable = PyDict_GetItemString(wsgi_dict, tmpstring);
+  } else {
+    return -1;
+  }
+}
+
+if (!wi->wsgi_callable) {
+  PyErr_Print();
+  if (uwsgi.single_interpreter == 0) {
+    Py_EndInterpreter(wi->interpreter);
+    PyThreadState_Swap(uwsgi.main_thread);
+  }
+  return -1;
+}
+
+wi->wsgi_environ = PyDict_New();
+if (!wi->wsgi_environ) {
+  PyErr_Print();
+  if (uwsgi.single_interpreter == 0) {
+    Py_EndInterpreter(wi->interpreter);
+    PyThreadState_Swap(uwsgi.main_thread);
+  }
+  return -1;
+}
+
+if (wsgi_dict) {
+  wi->wsgi_harakiri = PyDict_GetItemString(wsgi_dict, "harakiri");
+  if (wi->wsgi_harakiri) {
+    printf("initialized Harakiri custom handler: %p.\n", wi->wsgi_harakiri);
+  }
+}
+
+wi->wsgi_args = PyTuple_New(2);
+if (PyTuple_SetItem(wi->wsgi_args, 1, wsgi_spitout)) {
+  PyErr_Print();
+  if (uwsgi.single_interpreter == 0) {
+    Py_EndInterpreter(wi->interpreter);
+    PyThreadState_Swap(uwsgi.main_thread);
+  }
+  return -1;
+}
+
+if (uwsgi.single_interpreter == 0) {
+  PyThreadState_Swap(uwsgi.main_thread);
+}
+
+memset(tmpstring, 0, 256);
+memcpy(tmpstring, uwsgi.wsgi_req->script_name, uwsgi.wsgi_req->script_name_len);
+PyDict_SetItemString(uwsgi.py_apps, tmpstring, PyInt_FromLong(id));
+PyErr_Print();
+
+printf("application %d (%s) ready\n", id, tmpstring);
+
+if (id == 0) {
+  printf("setting default application to 0\n");
+  uwsgi.default_app = 0;
+} else {
+  uwsgi.wsgi_cnt++;
+}
+
+return id;
+}
+
+
+Void casgi_test_pyapp(asgi_config *config, char *filepath) {
+  Py_Initialize();
+
+  init_paths(config->app_path);
+
+  // Load the module object
+  PyObject *pName = PyUnicode_DecodeFSDefault(config->module);
+  PyObject *pModule = PyImport_Import(pName);
+  Py_DECREF(pName);
+
+  if (pModule != NULL) {
+    // Get the class from the module
+    PyObject *pClass = PyObject_GetAttrString(pModule, config->app);
+
+    if (pClass && PyCallable_Check(pClass)) {
+      // Create an instance of the class
+      PyObject *pInstance = PyObject_CallObject(pClass, NULL);
+
+      if (pInstance != NULL) {
+        // Create a Python string for the argument
+        PyObject *pValue = PyUnicode_FromString("hello");
+
+        // Call the instance with the argument (this calls the __call__ method)
+        PyObject *pResult =
+            PyObject_CallObject(pInstance, PyTuple_Pack(1, pValue));
+
+        // Check for and handle errors
+        if (pResult != NULL) {
+          Py_DECREF(pResult);
+        } else {
+          PyErr_Print();
+        }
+
+        // Clean up
+        Py_DECREF(pValue);
+        Py_DECREF(pInstance);
+      } else {
+        PyErr_Print();
+      }
+
+      Py_DECREF(pClass);
+    } else {
+      PyErr_Print();
+    }
+
+    Py_DECREF(pModule);
+  } else {
+    PyErr_Print();
+  }
+
+  // Finalize the Python interpreter
+  Py_Finalize();
+}
